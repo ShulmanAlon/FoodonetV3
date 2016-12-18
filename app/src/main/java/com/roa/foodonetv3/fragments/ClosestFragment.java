@@ -9,13 +9,9 @@ import android.view.ViewGroup;
 
 import com.roa.foodonetv3.R;
 
+public class ClosestFragment extends Fragment{
 
-/**
- * A simple {@link Fragment} subclass.
- */
-public class ClosestFragment extends Fragment {
-
-
+    private static final String TAG = "ClosestFragment";
     public ClosestFragment() {
         // Required empty public constructor
     }
@@ -25,7 +21,8 @@ public class ClosestFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_closest, container, false);
-    }
+        View v = inflater.inflate(R.layout.fragment_closest, container, false);
 
+        return v;
+    }
 }
