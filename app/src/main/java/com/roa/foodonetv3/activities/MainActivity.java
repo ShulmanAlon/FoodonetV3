@@ -1,14 +1,20 @@
 package com.roa.foodonetv3.activities;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TabLayout;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
@@ -24,12 +30,15 @@ import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import com.bumptech.glide.Glide;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 import com.google.android.gms.iid.InstanceID;
+import com.google.android.gms.location.LocationServices;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.roa.foodonetv3.R;
@@ -44,6 +53,7 @@ import com.roa.foodonetv3.fragments.RecentFragment;
 import com.roa.foodonetv3.model.Publication;
 import com.roa.foodonetv3.serverMethods.ServerMethods;
 import com.roa.foodonetv3.services.FoodonetService;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -51,8 +61,8 @@ import java.util.ArrayList;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,TabLayout.OnTabSelectedListener,
-        GoogleApiClient.OnConnectionFailedListener, OnReplaceFragListener {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, TabLayout.OnTabSelectedListener,
+        GoogleApiClient.OnConnectionFailedListener, OnReplaceFragListener, GoogleApiClient.ConnectionCallbacks {
     private static final String TAG = "MainActivity";
 
 
@@ -61,12 +71,22 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private Button buttonTest;
     private CircleImageView circleImageView;
     private TextView headerTxt;
+    private GoogleApiClient mGoogleApiClient;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Create an instance of GoogleAPIClient.
+        if (mGoogleApiClient == null) {
+            mGoogleApiClient = new GoogleApiClient.Builder(this)
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this)
+                    .addApi(LocationServices.API)
+                    .build();
+        }
 
         /** toolbar set up */
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -95,14 +115,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         // TODO: 01/01/2017 remove the notification token generator to initializes place
         /** generate notification token to register the device to get notification*/
-        String token = preferenceManager.getString(getString(R.string.key_prefs_notification_token),null);
+        String token = preferenceManager.getString(getString(R.string.key_prefs_notification_token), null);
         if (token == null) {
             generateNotificationToken();
         }
 
         /** set the drawer */
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        View hView =  navigationView.getHeaderView(0);
+        View hView = navigationView.getHeaderView(0);
         circleImageView = (CircleImageView) hView.findViewById(R.id.headerCircleImage);
         headerTxt = (TextView) hView.findViewById(R.id.headerNavTxt);
 
@@ -132,17 +152,23 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             public void onClick(View view) {
                 /** pressed on create new publication */
                 Intent i;
-                if(FirebaseAuth.getInstance().getCurrentUser()==null){
+                if (FirebaseAuth.getInstance().getCurrentUser() == null) {
                     /** no user logged in yet, open the sign in activity */
-                    i = new Intent(MainActivity.this,SignInActivity.class);
-                } else{
+                    i = new Intent(MainActivity.this, SignInActivity.class);
+                } else {
                     /** a user is logged in, continue to open the activity and fragment of the add publication */
-                    i = new Intent(MainActivity.this,PublicationActivity.class);
+                    i = new Intent(MainActivity.this, PublicationActivity.class);
                     i.putExtra(PublicationActivity.ACTION_OPEN_PUBLICATION, PublicationActivity.ADD_PUBLICATION_TAG);
                 }
                 startActivity(i);
             }
         });
+    }
+
+    @Override
+    protected void onStart() {
+        mGoogleApiClient.connect();
+        super.onStart();
     }
 
     @Override
@@ -161,6 +187,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     @Override
+    protected void onStop() {
+        mGoogleApiClient.disconnect();
+        super.onStop();
+    }
+
+    @Override
     public void onBackPressed() {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
@@ -175,9 +207,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        switch (item.getItemId()){
+        switch (item.getItemId()) {
             case R.id.map:
-                CommonMethods.navigationItemSelectedAction(this,R.id.nav_map_view);
+                CommonMethods.navigationItemSelectedAction(this, R.id.nav_map_view);
                 return true;
             case R.id.search:
             default:
@@ -189,7 +221,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
-        CommonMethods.navigationItemSelectedAction(this,item.getItemId());
+        CommonMethods.navigationItemSelectedAction(this, item.getItemId());
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
@@ -200,12 +232,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public void onTabSelected(TabLayout.Tab tab) {
         viewPager.setCurrentItem(tab.getPosition());
     }
+
     @Override
     public void onTabUnselected(TabLayout.Tab tab) {
     }
+
     @Override
     public void onTabReselected(TabLayout.Tab tab) {
     }
+
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
     }
@@ -214,8 +249,33 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public void onReplaceFrags(String openFragType, long id) {
         Intent i = new Intent(this, PublicationActivity.class);
         i.putExtra(PublicationActivity.ACTION_OPEN_PUBLICATION, openFragType);
-        i.putExtra(Publication.PUBLICATION_KEY,id);
+        i.putExtra(Publication.PUBLICATION_KEY, id);
         this.startActivity(i);
+    }
+
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        Location lastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        double lat = lastLocation.getLatitude();
+        double lng = lastLocation.getLongitude();
+        Toast.makeText(this, "lat:"+lat+", lng:"+lng, Toast.LENGTH_SHORT).show();
+        Log.d(TAG,"lat:"+lat+", lng:"+lng);
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
     }
 
     //view pager adapter...
