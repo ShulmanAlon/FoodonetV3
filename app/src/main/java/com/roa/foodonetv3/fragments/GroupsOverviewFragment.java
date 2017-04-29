@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
-import android.os.Parcelable;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.LocalBroadcastManager;
@@ -15,27 +14,25 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.roa.foodonetv3.R;
-import com.roa.foodonetv3.activities.GroupsActivity;
 import com.roa.foodonetv3.adapters.GroupsRecyclerAdapter;
-import com.roa.foodonetv3.commonMethods.CommonMethods;
-import com.roa.foodonetv3.commonMethods.OnReplaceFragListener;
 import com.roa.foodonetv3.commonMethods.ReceiverConstants;
+import com.roa.foodonetv3.db.GroupsDBHandler;
 import com.roa.foodonetv3.model.Group;
-import com.roa.foodonetv3.services.FoodonetService;
-
 import java.util.ArrayList;
 
 public class GroupsOverviewFragment extends Fragment {
     private static final String TAG = "GroupsOverviewFragment";
 
     private GroupsRecyclerAdapter adapter;
+    private TextView textInfo;
+    private View layoutInfo;
+    private GroupsDBHandler groupsDBHandler;
+
     private FoodonetReceiver receiver;
-//    private ProgressDialog progressDialog;
-//    private String newGroupName;
-    private OnReplaceFragListener replaceFragListener;
 
     public GroupsOverviewFragment() {
         // Required empty public constructor
@@ -45,7 +42,6 @@ public class GroupsOverviewFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         receiver = new FoodonetReceiver();
-        replaceFragListener = (OnReplaceFragListener) getContext();
     }
 
     @Override
@@ -54,10 +50,20 @@ public class GroupsOverviewFragment extends Fragment {
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_groups_overview, container, false);
 
+        /** set title */
+        getActivity().setTitle(R.string.drawer_groups);
+
+        /** set recycler for publications */
         RecyclerView recyclerGroupsOverview = (RecyclerView) v.findViewById(R.id.recyclerGroupsOverview);
         recyclerGroupsOverview.setLayoutManager(new LinearLayoutManager(getContext()));
         adapter = new GroupsRecyclerAdapter(getContext());
         recyclerGroupsOverview.setAdapter(adapter);
+
+        /** set info screen for when there are no groups */
+        layoutInfo = v.findViewById(R.id.layoutInfo);
+        layoutInfo.setVisibility(View.GONE);
+        textInfo = (TextView) v.findViewById(R.id.textInfo);
+        textInfo.setText(R.string.you_dont_have_any_groups_yet);
 
         return v;
     }
@@ -65,37 +71,26 @@ public class GroupsOverviewFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        /** register receiver */
         IntentFilter filter = new IntentFilter(ReceiverConstants.BROADCAST_FOODONET);
         LocalBroadcastManager.getInstance(getContext()).registerReceiver(receiver,filter);
 
-        Intent intent = new Intent(getContext(),FoodonetService.class);
-        intent.putExtra(ReceiverConstants.ACTION_TYPE, ReceiverConstants.ACTION_GET_GROUPS);
-        String[] args = new String[]{String.valueOf(CommonMethods.getMyUserID(getContext()))};
-        intent.putExtra(ReceiverConstants.ADDRESS_ARGS,args);
-        getContext().startService(intent);
+        groupsDBHandler = new GroupsDBHandler(getContext());
+        ArrayList<Group> groups = groupsDBHandler.getAllGroups();
+        if(groups.size() == 0){
+            layoutInfo.setVisibility(View.VISIBLE);
+            textInfo.setText(R.string.you_dont_have_any_groups_yet);
+        } else{
+            layoutInfo.setVisibility(View.GONE);
+            adapter.updateGroups(groups);
+        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
         LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(receiver);
-//        if(progressDialog!= null){
-//            progressDialog.dismiss();
-//        }
     }
-
-//    @Override
-//    public void onNewGroupClick(String groupName){
-//        newGroupName = groupName;
-//        Group newGroup = new Group(groupName, CommonMethods.getMyUserID(getContext()),null,-1);
-//        Intent intent = new Intent(getContext(), FoodonetService.class);
-//        intent.putExtra(StartServiceMethods.ACTION_TYPE,StartServiceMethods.ACTION_ADD_GROUP);
-//        intent.putExtra(FoodonetService.JSON_TO_SEND,newGroup.getAddGroupJson().toString());
-//        getContext().startService(intent);
-//        progressDialog = new ProgressDialog(getContext());
-//        progressDialog.setTitle(R.string.please_wait);
-//        progressDialog.show();
-//    }
 
     private class FoodonetReceiver extends BroadcastReceiver {
         @Override
@@ -103,28 +98,34 @@ public class GroupsOverviewFragment extends Fragment {
             /** receiver for reports got from the service */
             int action = intent.getIntExtra(ReceiverConstants.ACTION_TYPE,-1);
             switch (action){
-                case ReceiverConstants.ACTION_GET_GROUPS:
-                    if(intent.getBooleanExtra(ReceiverConstants.SERVICE_ERROR,false)){
-                        // TODO: 27/11/2016 add logic if fails
-                        Toast.makeText(context, "service failed", Toast.LENGTH_SHORT).show();
-                    } else{
-                        ArrayList<Group> groups = intent.getParcelableArrayListExtra(Group.KEY);
-                        adapter.updateGroups(groups);
-                        // TODO: 07/12/2016 remove toast after testing
-                        Toast.makeText(context, "got groups", Toast.LENGTH_SHORT).show();
-                    }
-                    break;
                 case ReceiverConstants.ACTION_ADD_GROUP:
                     if(intent.getBooleanExtra(ReceiverConstants.SERVICE_ERROR,false)){
-                        // TODO: 27/11/2016 add logic if fails
+                        // TODO: 27/02/2016 add logic if fails
+                        Toast.makeText(context, "service failed", Toast.LENGTH_SHORT).show();
+                    } else{
+                        layoutInfo.setVisibility(View.GONE);
+                        adapter.updateGroups(groupsDBHandler.getAllGroups());
+                    }
+                    break;
+                case ReceiverConstants.ACTION_ADD_GROUP_MEMBER:
+                    if(intent.getBooleanExtra(ReceiverConstants.SERVICE_ERROR,false)){
+                        // TODO: 14/12/2016 add logic if fails
+                        Toast.makeText(context, "service failed", Toast.LENGTH_SHORT).show();
+                    } else{
+                        adapter.updateGroups(groupsDBHandler.getAllGroups());
+                    }
+                    break;
+
+                case ReceiverConstants.ACTION_GET_GROUPS:
+                    if(intent.getBooleanExtra(ReceiverConstants.SERVICE_ERROR,false)){
+                        // TODO: 02/04/2017 add logic if fails
                         Toast.makeText(context, "service failed", Toast.LENGTH_SHORT).show();
                     } else {
-                        // TODO: 13/12/2016 test, the service is currently not working
-                        Group newGroup = intent.getParcelableExtra(Group.GROUP);
-                        ArrayList<Parcelable> arrayList = new ArrayList<>();
-                        arrayList.add(newGroup);
-                        replaceFragListener.replaceFrags(GroupsActivity.ADMIN_GROUP_TAG, arrayList);
-                        break;
+                        ArrayList<Group> groups = groupsDBHandler.getAllGroups();
+                        if(groups.size()!=0){
+                            layoutInfo.setVisibility(View.GONE);
+                        }
+                        adapter.updateGroups(groups);
                     }
             }
         }

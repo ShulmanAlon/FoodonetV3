@@ -6,16 +6,16 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-
 import com.roa.foodonetv3.R;
 import com.roa.foodonetv3.commonMethods.CommonMethods;
 import com.roa.foodonetv3.model.PublicationReport;
-
 import java.util.ArrayList;
 import java.util.Locale;
 
+/** recycler for publication reports */
 public class ReportsRecyclerAdapter extends RecyclerView.Adapter<ReportsRecyclerAdapter.ReportsHolder> {
     private static final String TAG = "ReportsRecyclerAdapter";
+
     private static final int REPORT_VIEW = 1;
     private static final int REPORT_SPACER = 2;
     private Context context;
@@ -33,6 +33,7 @@ public class ReportsRecyclerAdapter extends RecyclerView.Adapter<ReportsRecycler
 
     @Override
     public int getItemViewType(int position) {
+        /** adding a spacer in the bottom so that the fab won't hide the last one */
         if(position==reports.size()){
             return REPORT_SPACER;
         } return REPORT_VIEW;
@@ -42,9 +43,9 @@ public class ReportsRecyclerAdapter extends RecyclerView.Adapter<ReportsRecycler
     public ReportsHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(context);
         if(viewType == REPORT_VIEW){
-            return new ReportsHolder(inflater.inflate(R.layout.report_list_item,parent,false));
+            return new ReportsHolder(inflater.inflate(R.layout.item_report_list,parent,false),viewType);
         } else{
-            return new ReportsHolder(inflater.inflate(R.layout.report_list_spacer,parent,false));
+            return new ReportsHolder(inflater.inflate(R.layout.item_list_spacer,parent,false),viewType);
         }
     }
 
@@ -52,8 +53,6 @@ public class ReportsRecyclerAdapter extends RecyclerView.Adapter<ReportsRecycler
     public void onBindViewHolder(ReportsHolder holder, int position) {
         if(getItemViewType(position)==REPORT_VIEW){
             holder.bindReport(reports.get(position));
-        } else{
-            holder.bindSpacer();
         }
     }
 
@@ -62,23 +61,22 @@ public class ReportsRecyclerAdapter extends RecyclerView.Adapter<ReportsRecycler
         return reports.size()+1;
     }
 
-    public class ReportsHolder extends RecyclerView.ViewHolder{
+    class ReportsHolder extends RecyclerView.ViewHolder{
         private TextView textReport;
 
-        public ReportsHolder(View itemView) {
+        ReportsHolder(View itemView, int viewType) {
             super(itemView);
-            textReport = (TextView) itemView.findViewById(R.id.textReport);
+            if(viewType == REPORT_VIEW){
+                textReport = (TextView) itemView.findViewById(R.id.textReport);
+            }
         }
 
-        public void bindReport(PublicationReport report){
+        void bindReport(PublicationReport report){
+            /** set the message */
             textReport.setText(String.format(Locale.US,"%1$s - (%2$s %3$s)",
                     CommonMethods.getReportStringFromType(context,report.getReportType()),
                     CommonMethods.getTimeDifference(context,Double.parseDouble(report.getDateOfReport()),CommonMethods.getCurrentTimeSeconds()),
                     context.getResources().getString(R.string.ago)));
-
-        }
-        public void bindSpacer(){
-            // do nothing
         }
     }
 }

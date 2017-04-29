@@ -5,6 +5,14 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.google.android.c2dm.permission.RECEIVE" />
+
+    <permission
+        android:name="com.roa.foodonetv3.permission.C2D_MESSAGE"
+        android:protectionLevel="signature" />
+
+    <uses-permission android:name="com.roa.foodonetv3.permission.C2D_MESSAGE" />
 
     <application
         android:allowBackup="true"
@@ -13,7 +21,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".activities.MainDrawerActivity"
+            android:name=".activities.MainActivity"
             android:configChanges="orientation"
             android:label="@string/app_name"
             android:screenOrientation="portrait"
@@ -54,28 +62,46 @@
         <activity
             android:name=".activities.MapActivity"
             android:configChanges="orientation"
-            android:screenOrientation="portrait"
-            android:label="@string/title_activity_map" />
+            android:label="@string/title_activity_map"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".activities.SplashForCamera"
             android:configChanges="orientation"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.Dialog.Alert" />
-        <activity android:name=".activities.AboutUsActivity"
+        <activity
+            android:name=".activities.AboutUsActivity"
             android:configChanges="orientation"
-            android:screenOrientation="portrait"/>
-        <activity android:name=".activities.PrefsActivity"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".activities.PrefsActivity"
             android:configChanges="orientation"
-            android:screenOrientation="portrait"/>
-        <activity android:name=".activities.PlacesActivity"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".activities.PlacesActivity"
             android:configChanges="orientation"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait" />
         <activity
             android:name=".activities.GroupsActivity"
-            android:label="@string/title_activity_groups"
             android:configChanges="orientation"
+            android:label="@string/title_activity_groups"
             android:screenOrientation="portrait"
-            android:theme="@style/AppTheme.NoActionBar"/>
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".activities.NotificationActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar"  />
+
+        <receiver
+            android:name="com.google.android.gms.gcm.GcmReceiver"
+            android:exported="true"
+            android:permission="com.google.android.c2dm.permission.SEND">
+            <intent-filter>
+                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+
+                <category android:name="com.roa.foodonetv3" />
+            </intent-filter>
+        </receiver>
 
         <provider
             android:name="android.support.v4.content.FileProvider"
@@ -86,6 +112,10 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <provider
+            android:name=".db.FoodonetDBProvider"
+            android:authorities="com.roa.foodonetv3.db.FoodonetDBProvider"
+            android:exported="false" />
 
         <service
             android:name="com.amazonaws.mobileconnectors.s3.transferutility.TransferService"
@@ -93,6 +123,19 @@
         <service
             android:name=".services.FoodonetService"
             android:exported="false" />
+        <service
+            android:name=".services.GetDataService"
+            android:exported="false" />
+        <service
+            android:name=".services.FoodonetGcmListenerService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+            </intent-filter>
+        </service>
+        <service
+            android:name=".services.NotificationsDismissService"
+            android:exported="false"/>
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"

@@ -34,7 +34,7 @@
         android:id="@+id/textPublicationTitle"
         style="@style/FooBlackBoldSmall"
         android:layout_alignParentTop="true"
-        android:layout_marginTop="@dimen/margin_16"
+        android:layout_marginTop="@dimen/margin_8"
         android:layout_toRightOf="@+id/imagePublicationGroup"
         android:layout_toEndOf="@+id/imagePublicationGroup"
         android:layout_marginStart="@dimen/margin_16"
@@ -64,12 +64,12 @@
 
     <View
         android:layout_width="match_parent"
-        android:layout_height="1dp"
+        android:layout_height="@dimen/divider_height"
         android:layout_toRightOf="@+id/imagePublication"
         android:layout_toEndOf="@+id/imagePublication"
         android:layout_marginRight="@dimen/margin_16"
         android:layout_marginEnd="@dimen/margin_16"
-        android:background="#FF909090"
+        android:background="@color/fooDivider"
         android:layout_alignParentBottom="true"/>
 
 

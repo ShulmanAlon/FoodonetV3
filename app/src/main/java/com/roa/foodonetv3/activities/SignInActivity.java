@@ -7,17 +7,11 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
-
 import com.facebook.AccessToken;
 import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
 import com.facebook.FacebookSdk;
-import com.facebook.GraphRequest;
-import com.facebook.GraphResponse;
-import com.facebook.HttpMethod;
-import com.facebook.Profile;
-import com.facebook.login.LoginManager;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
 import com.google.android.gms.auth.api.Auth;
@@ -36,8 +30,6 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.roa.foodonetv3.R;
-
-import static com.facebook.Profile.getCurrentProfile;
 
 public class SignInActivity extends AppCompatActivity implements View.OnClickListener, GoogleApiClient.OnConnectionFailedListener, FacebookCallback<LoginResult> {
 
@@ -65,15 +57,13 @@ public class SignInActivity extends AppCompatActivity implements View.OnClickLis
         loginButton.setReadPermissions("email", "public_profile");
         loginButton.registerCallback(mCallbackManager,this);
 
-
-
         mAuthListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
                  user = firebaseAuth.getCurrentUser();
                 if (user != null) {
                     Log.d(TAG, "onAuthStateChanged:signed_in:" + user.getUid());
-                    Toast.makeText(SignInActivity.this, "success2", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(SignInActivity.this, R.string.success, Toast.LENGTH_SHORT).show();
                     startActivity(new Intent(SignInActivity.this, WelcomeUserActivity.class));
                     finish();
                 } else {

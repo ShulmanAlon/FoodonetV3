@@ -6,8 +6,6 @@ import org.json.JSONObject;
 
 public class User {
     private static final String TAG = "User";
-    private String identityProvider, identityProviderUserID,identityProviderToken,phoneNumber,identityProviderEmail,identityProviderUserName,activeDeviceDevUuid;
-    private boolean isLoggedIn;
     public static final String USER_KEY = "user";
     public static final String IDENTITY_PROVIDER = "identity_provider";
     public static final String IDENTITY_PROVIDER_USER_ID = "identity_provider_user_id";
@@ -18,11 +16,13 @@ public class User {
     public static final String IS_LOGGED_IN= "is_logged_in";
     public static final String ACTIVE_DEVICE_DEV_UUID= "active_device_dev_uuid";
 
+    private String identityProvider, identityProviderUserUID,identityProviderToken,phoneNumber,identityProviderEmail,identityProviderUserName,activeDeviceDevUuid;
+    private boolean isLoggedIn;
 
-    public User(String identityProvider, String identityProviderUserID, String identityProviderToken, String phoneNumber, String identityProviderEmail,
+    public User(String identityProvider, String identityProviderUserUID, String identityProviderToken, String phoneNumber, String identityProviderEmail,
                 String identityProviderUserName, boolean isLoggedIn, String activeDeviceDevUuid) {
         this.identityProvider = identityProvider;
-        this.identityProviderUserID = identityProviderUserID;
+        this.identityProviderUserUID = identityProviderUserUID;
         this.identityProviderToken = identityProviderToken;
         this.phoneNumber = phoneNumber;
         this.identityProviderEmail = identityProviderEmail;
@@ -31,12 +31,13 @@ public class User {
         this.activeDeviceDevUuid = activeDeviceDevUuid;
     }
 
+    /** creates a json object to be sent to the server */
     public JSONObject getUserJson(){
         JSONObject userJsonRoot = new JSONObject();
         JSONObject userJson = new JSONObject();
         try {
             userJson.put(IDENTITY_PROVIDER, getIdentityProvider());
-            userJson.put(IDENTITY_PROVIDER_USER_ID, getIdentityProviderUserID());
+            userJson.put(IDENTITY_PROVIDER_USER_ID, getIdentityProviderUserUID());
             userJson.put(IDENTITY_PROVIDER_USER_TOKEN, getIdentityProviderToken());
             userJson.put(PHONE_NUMBER, getPhoneNumber());
             userJson.put(IDENTITY_PROVIDER_EMAIL, getIdentityProviderEmail());
@@ -46,7 +47,7 @@ public class User {
 
             userJsonRoot.put(USER_KEY,userJson);
         } catch (JSONException e) {
-            Log.e("getPublicationJson", e.getMessage());
+            Log.e(TAG,e.getMessage());
         }
         return userJsonRoot;
     }
@@ -59,12 +60,12 @@ public class User {
         this.identityProvider = identityProvider;
     }
 
-    public String getIdentityProviderUserID() {
-        return identityProviderUserID;
+    public String getIdentityProviderUserUID() {
+        return identityProviderUserUID;
     }
 
-    public void setIdentityProviderUserID(String identityProviderUserID) {
-        this.identityProviderUserID = identityProviderUserID;
+    public void setIdentityProviderUserUID(String identityProviderUserUID) {
+        this.identityProviderUserUID = identityProviderUserUID;
     }
 
     public String getIdentityProviderToken() {

@@ -3,11 +3,9 @@ package com.roa.foodonetv3.model;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Log;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.ArrayList;
 
 public class Group implements Parcelable {
@@ -15,7 +13,6 @@ public class Group implements Parcelable {
 
     public static final String KEY = "group";
     public static final String GROUP_MEMBERS = "group_members";
-
     public static final String GROUP = "group";
     public static final String ADD_GROUP_NAME = "name";
     public static final String USER_ID = "user_id";
@@ -24,20 +21,17 @@ public class Group implements Parcelable {
     public static final String GET_GROUP_NAME = "group_name";
 
     private String groupName;
-    private int userID, groupID;
-    private ArrayList<GroupMember> members;
+    private long userID, groupID;
 
-    public Group(String groupName, int userID, ArrayList<GroupMember> members, int groupID) {
+    public Group(String groupName, long userID, long groupID) {
         this.groupName = groupName;
         this.userID = userID;
-        this.members = members;
         this.groupID = groupID;
     }
 
     protected Group(Parcel in) {
         groupName = in.readString();
-        userID = in.readInt();
-        members = in.createTypedArrayList(GroupMember.CREATOR);
+        userID = in.readLong();
     }
 
     public static final Creator<Group> CREATOR = new Creator<Group>() {
@@ -52,10 +46,7 @@ public class Group implements Parcelable {
         }
     };
 
-    public void addToMembers(GroupMember member){
-        members.add(member);
-    }
-
+    /** creates a json object to be sent to the server */
     public JSONObject getAddGroupJson(){
         JSONObject groupRoot = new JSONObject();
         JSONObject group = new JSONObject();
@@ -70,20 +61,15 @@ public class Group implements Parcelable {
         return groupRoot;
     }
 
-    public JSONObject getAddGroupMembersJson(){
-        ArrayList<GroupMember> members = getMembers();
+    /** creates a json object to be sent to the server */
+    public static JSONObject getAddGroupMembersJson(ArrayList<GroupMember> members){
         JSONObject groupMembersRoot = new JSONObject();
         JSONArray groupMembersArray = new JSONArray();
         GroupMember member;
         try {
             for (int i = 0; i < members.size(); i++) {
                 member = members.get(i);
-                JSONObject groupMember = new JSONObject();
-                groupMember.put(GroupMember.NAME,member.getName());
-                groupMember.put(GroupMember.USER_ID,0); // 0 means it's not the admin
-                groupMember.put(GroupMember.PHONE_NUMBER,member.getPhoneNumber());
-                groupMember.put(GroupMember.NAME,member.getName());
-                groupMember.put(GroupMember.IS_ADMIN,false); // false means it's not the admin
+                JSONObject groupMember = member.getAddMemberJson();
                 groupMembersArray.put(groupMember);
             }
             groupMembersRoot.put(GROUP_MEMBERS,groupMembersArray);
@@ -101,27 +87,19 @@ public class Group implements Parcelable {
         this.groupName = groupName;
     }
 
-    public int getUserID() {
+    public long getUserID() {
         return userID;
     }
 
-    public void setUserID(int userID) {
+    public void setUserID(long userID) {
         this.userID = userID;
     }
 
-    public ArrayList<GroupMember> getMembers() {
-        return members;
-    }
-
-    public void setMembers(ArrayList<GroupMember> members) {
-        this.members = members;
-    }
-
-    public int getGroupID() {
+    public long getGroupID() {
         return groupID;
     }
 
-    public void setGroupID(int groupID) {
+    public void setGroupID(long groupID) {
         this.groupID = groupID;
     }
 
@@ -133,8 +111,7 @@ public class Group implements Parcelable {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(groupName);
-        dest.writeInt(userID);
-        dest.writeInt(groupID);
-        dest.writeTypedList(members);
+        dest.writeLong(userID);
+        dest.writeLong(groupID);
     }
 }

@@ -1,33 +1,30 @@
 package com.roa.foodonetv3.model;
 
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.util.Log;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 
-/**
- * Created by Owner on 27/11/2016.
- */
+public class RegisteredUser implements Parcelable{
+    private static final String TAG = "RegisteredUser";
 
-public class RegistrationPublication {
-    private static final String TAG = "RegistrationPublication";
+    private static final String REGISTERED_USER_FOR_PUBLICATION = "registered_user_for_publication";
+    private static final String PUBLICATION_ID = "publication_id";
+    private static final String DATE_OF_REGISTRATION = "date_of_registration";
+    private static final String ACTIVE_DEVICE_DEV_UUID = "active_device_dev_uuid";
+    private static final String PUBLICATION_VERSION = "publication_version";
+    private static final String COLLECTOR_NAME = "collector_name";
+    private static final String COLLECTOR_CONTACT_INFO = "collector_contact_info";
+    private static final String COLLECTOR_USER_ID = "collector_user_id";
 
-    public static final String REGISTERED_USER_FOR_PUBLICATION = "registered_user_for_publication";
-    public static final String PUBLICATION_ID = "publication_id";
-    public static final String DATE_OF_REGISTRATION = "date_of_registration";
-    public static final String ACTIVE_DEVICE_DEV_UUID = "active_device_dev_uuid";
-    public static final String PUBLICATION_VERSION = "publication_version";
-    public static final String COLLECTOR_NAME = "collector_name";
-    public static final String COLLECTOR_CONTACT_INFO = "collector_contact_info";
-    public static final String COLLECTOR_USER_ID = "collector_contact_info";
-
-    private int publicationVersion,collectorUserID;
-    private long publicationID;
+    private int publicationVersion;
+    private long publicationID,collectorUserID;
     private double dateOfRegistration;
     private String activeDeviceDevUUID,collectorName,collectorContactInfo;
 
 
-    public RegistrationPublication(long publicationID, double dateOfRegistration, String activeDeviceDevUUID, int publicationVersion, String collectorName, String collectorContactInfo, int collectorUserID) {
+    public RegisteredUser(long publicationID, double dateOfRegistration, String activeDeviceDevUUID, int publicationVersion, String collectorName, String collectorContactInfo, long collectorUserID) {
         this.publicationID = publicationID;
         this.dateOfRegistration = dateOfRegistration;
         this.activeDeviceDevUUID = activeDeviceDevUUID;
@@ -37,6 +34,29 @@ public class RegistrationPublication {
         this.collectorUserID = collectorUserID;
     }
 
+    protected RegisteredUser(Parcel in) {
+        publicationVersion = in.readInt();
+        publicationID = in.readLong();
+        collectorUserID = in.readLong();
+        dateOfRegistration = in.readDouble();
+        activeDeviceDevUUID = in.readString();
+        collectorName = in.readString();
+        collectorContactInfo = in.readString();
+    }
+
+    public static final Creator<RegisteredUser> CREATOR = new Creator<RegisteredUser>() {
+        @Override
+        public RegisteredUser createFromParcel(Parcel in) {
+            return new RegisteredUser(in);
+        }
+
+        @Override
+        public RegisteredUser[] newArray(int size) {
+            return new RegisteredUser[size];
+        }
+    };
+
+    /** creates a json object to be sent to the server */
     public JSONObject getJsonForRegistration(){
         JSONObject root = new JSONObject();
         JSONObject registration = new JSONObject();
@@ -71,11 +91,11 @@ public class RegistrationPublication {
         this.publicationVersion = publicationVersion;
     }
 
-    public int getCollectorUserID() {
+    public long getCollectorUserID() {
         return collectorUserID;
     }
 
-    public void setCollectorUserID(int collectorUserID) {
+    public void setCollectorUserID(long collectorUserID) {
         this.collectorUserID = collectorUserID;
     }
 
@@ -109,5 +129,21 @@ public class RegistrationPublication {
 
     public void setCollectorContactInfo(String collectorContactInfo) {
         this.collectorContactInfo = collectorContactInfo;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeInt(publicationVersion);
+        dest.writeLong(publicationID);
+        dest.writeLong(collectorUserID);
+        dest.writeDouble(dateOfRegistration);
+        dest.writeString(activeDeviceDevUUID);
+        dest.writeString(collectorName);
+        dest.writeString(collectorContactInfo);
     }
 }

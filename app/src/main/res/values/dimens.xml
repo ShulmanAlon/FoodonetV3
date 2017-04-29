@@ -7,6 +7,8 @@
     <dimen name="activity_vertical_margin">16dp</dimen>
 
     <dimen name="fab_margin">16dp</dimen>
+    <dimen name="fab_size">56dp</dimen>
+    <dimen name="fab_size_plus_margin">72dp</dimen>
 
     <dimen name="margin_4">4dp</dimen>
     <dimen name="margin_8">8dp</dimen>
@@ -17,9 +19,12 @@
     <dimen name="margin_24">24dp</dimen>
 
     <dimen name="image_size_16">16dp</dimen>
+    <dimen name="image_size_24">24dp</dimen>
     <dimen name="image_size_68">68dp</dimen>
     <dimen name="image_size_50">50dp</dimen>
     <dimen name="image_size_height_200">200dp</dimen>
+    <dimen name="image_size_height_150">150dp</dimen>
+    <dimen name="image_size_height_120">120dp</dimen>
 
     <dimen name="text_size_12">12sp</dimen>
     <dimen name="text_size_16">16sp</dimen>
@@ -29,5 +34,7 @@
     <dimen name="text_size_36">36sp</dimen>
 
     <dimen name="layout_size_80">80dp</dimen>
+
+    <dimen name="divider_height">1dp</dimen>
 
 </resources>

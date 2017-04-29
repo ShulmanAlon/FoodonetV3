@@ -1,68 +1,96 @@
 package com.roa.foodonetv3.commonMethods;
 
 import android.app.Activity;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Rect;
 import android.location.LocationManager;
+import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
+import android.telephony.PhoneNumberUtils;
 import android.util.Log;
 import android.widget.Toast;
-
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.roa.foodonetv3.ContactUsDialog;
+import com.google.android.gms.maps.model.LatLng;
+import com.roa.foodonetv3.activities.NotificationActivity;
+import com.roa.foodonetv3.activities.SplashScreenActivity;
+import com.roa.foodonetv3.db.NotificationsDBHandler;
+import com.roa.foodonetv3.dialogs.ContactUsDialog;
 import com.roa.foodonetv3.activities.GroupsActivity;
 import com.roa.foodonetv3.R;
 import com.roa.foodonetv3.activities.AboutUsActivity;
-import com.roa.foodonetv3.activities.MainDrawerActivity;
+import com.roa.foodonetv3.activities.MainActivity;
 import com.roa.foodonetv3.activities.MapActivity;
 import com.roa.foodonetv3.activities.PrefsActivity;
 import com.roa.foodonetv3.activities.PublicationActivity;
-import com.roa.foodonetv3.model.User;
+import com.roa.foodonetv3.activities.SignInActivity;
+import com.roa.foodonetv3.model.GroupMember;
+import com.roa.foodonetv3.model.NotificationFoodonet;
+import com.roa.foodonetv3.serverMethods.ServerMethods;
+import com.roa.foodonetv3.services.GetDataService;
+import com.roa.foodonetv3.services.NotificationsDismissService;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 public class CommonMethods {
     private static final String TAG = "CommonMethods";
 
     /**
-     * We only need one instance of the clients and credentials provider
+     * we only need one instance of the clients and credentials provider
      */
     private static AmazonS3Client sS3Client;
     private static CognitoCachingCredentialsProvider sCredProvider;
     private static TransferUtility sTransferUtility;
 
     public static void navigationItemSelectedAction(Context context, int id) {
-        /** handle the navigation actions from the drawer*/
+        /** handles the navigation actions from the drawer*/
         Intent intent;
         switch (id) {
             case R.id.nav_my_shares:
                 intent = new Intent(context, PublicationActivity.class);
-                intent.putExtra(PublicationActivity.ACTION_OPEN_PUBLICATION, PublicationActivity.OPEN_MY_PUBLICATIONS);
+                if (!(context instanceof MainActivity)) {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                }
+                intent.putExtra(PublicationActivity.ACTION_OPEN_PUBLICATION, PublicationActivity.MY_PUBLICATIONS_TAG);
                 context.startActivity(intent);
-                if (!(context instanceof MainDrawerActivity)) {
-                    // TODO: 04/12/2016 roi, what's the point of running the method here?
-                    ifGpsIsEnable(context);
+                if (!(context instanceof MainActivity)) {
                     ((Activity) context).finish();
                 }
                 break;
             case R.id.nav_all_events:
-                if (!(context instanceof MainDrawerActivity)) {
-                    intent = new Intent(context, MainDrawerActivity.class);
+                if (!(context instanceof MainActivity)) {
+                    intent = new Intent(context, MainActivity.class);
                     intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                     context.startActivity(intent);
                     break;
@@ -70,7 +98,7 @@ public class CommonMethods {
                 break;
             case R.id.nav_map_view:
                 intent = new Intent(context, MapActivity.class);
-                if (context instanceof MainDrawerActivity) {
+                if (context instanceof MainActivity) {
                     context.startActivity(intent);
                 } else {
                     context.startActivity(intent);
@@ -79,29 +107,33 @@ public class CommonMethods {
                 }
                 break;
             case R.id.nav_notifications:
+                intent = new Intent(context, NotificationActivity.class);
+//                if(context instanceof  NotificationActivity){
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+//                    context.startActivity(intent);
+//                } else{
+                context.startActivity(intent);
+//                }
 
                 break;
             case R.id.nav_groups:
                 intent = new Intent(context, GroupsActivity.class);
-                if(context instanceof GroupsActivity){
+                if (context instanceof GroupsActivity || context instanceof MainActivity) {
                     // TODO: 06/12/2016 test
                     intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                     context.startActivity(intent);
-                } else{
+                } else {
                     context.startActivity(intent);
                 }
                 break;
             case R.id.nav_settings:
-//                // TODO: 22/11/2016 temporary here, should be moved to settings menu when it will be available
-//                intent = new Intent(context, SignInActivity.class);
-//                if (context instanceof MainDrawerActivity) {
-//                    context.startActivity(intent);
-//                } else {
-//                    context.startActivity(intent);
-//                    ((Activity) context).finish();
-//
-//                }
-                intent = new Intent(context, PrefsActivity.class);
+                if (getMyUserID(context) == -1) {
+                    /** if the user is not signed in yet, open the sign in activity */
+                    intent = new Intent(context, SignInActivity.class);
+                } else {
+                    /** open the preferences fragment activity */
+                    intent = new Intent(context, PrefsActivity.class);
+                }
                 context.startActivity(intent);
                 break;
             case R.id.nav_contact_us:
@@ -115,68 +147,141 @@ public class CommonMethods {
         }
     }
 
+    /**
+     * returns current epoch time in seconds(NOT MILLIS!)
+     */
     public static double getCurrentTimeSeconds() {
-        /** returns current epoch time in seconds(NOT MILLIS!) */
-        return System.currentTimeMillis() / 1000;
+        long currentTime = System.currentTimeMillis() / 1000;
+        return currentTime;
     }
 
-    public static String getTimeDifference(Context context, Double earlierTime, Double laterTime) {
-        /** returns a string of time difference between two times in epoch time seconds (NOT MILLIS!) with a changing perspective according to the length */
-        long timeDiff = (long) (laterTime - earlierTime) / 60; // minutes as start
-        String typeOfTime;
+    /**
+     * returns a string of time difference between two times in epoch time seconds (NOT MILLIS!) with a changing perspective according to the duration
+     */
+    public static String getTimeDifference(Context context, Double earlierTimeInSeconds, Double laterTimeInSeconds) {
+        long timeDiff = (long) (laterTimeInSeconds - earlierTimeInSeconds) / 60; // minutes as start
+        StringBuilder message = new StringBuilder();
         if (timeDiff < 0) {
             return "N/A";
-        } else if (timeDiff < 120) {
-            /** returns time in minutes */
-            typeOfTime = context.getResources().getString(R.string.minutes);
-        } else if (timeDiff / 60 < 48) {
-            /** returns time in hours */
-            typeOfTime = context.getResources().getString(R.string.hours);
-            timeDiff /= 60;
+        } else if (timeDiff < 1440) {
+            /** hours, minutes */
+            if (timeDiff / 60 != 0) {
+                message.append(String.format(Locale.US, "%1$d%2$s ", timeDiff / 60, context.getResources().getString(R.string.h_hours)));
+            }
+            message.append(String.format(Locale.US, "%1$d%2$s", timeDiff % 60, context.getResources().getString(R.string.min_minutes)));
         } else {
-            /** returns time in days */
-            typeOfTime = context.getResources().getString(R.string.days);
-            timeDiff /= 60 / 24;
+            /** days, hours */
+            long days = timeDiff / 1440;
+            String daysString;
+            if (days == 1) {
+                daysString = context.getResources().getString(R.string.day);
+            } else {
+                daysString = context.getResources().getString(R.string.days);
+            }
+            message.append(String.format(Locale.US, "%1$d %2$s ", days, daysString));
+            if (timeDiff < 10080) {
+                /** only add hours if the difference is less than a week, otherwise just show days */
+                message.append(String.format(Locale.US, "%1$d%2$s", (timeDiff % 1440) / 60, context.getResources().getString(R.string.h_hours)));
+            }
         }
-        return String.format(Locale.US, "%1$d %2$s", timeDiff, typeOfTime);
+        return message.toString();
     }
 
+    public static boolean isUserGroupAdmin(Context context, ArrayList<GroupMember> members) {
+        long userID = getMyUserID(context);
+        GroupMember member;
+        for (int i = 0; i < members.size(); i++) {
+            member = members.get(i);
+            if (member.getUserID() == userID) {
+                return member.isAdmin();
+            }
+        }
+        return false;
+    }
+
+    /**
+     * get the message according to the server specified report type
+     */
     public static String getReportStringFromType(Context context, int typeOfReport) {
-        /** get the message according to the server specified report type */
         switch (typeOfReport) {
-            case 1:
+            case CommonConstants.REPORT_TYPE_HAS_MORE:
                 return context.getResources().getString(R.string.report_has_more_to_offer);
-            case 3:
+            case CommonConstants.REPORT_TYPE_TOOK_ALL:
                 return context.getResources().getString(R.string.report_took_all);
-            case 5:
+            case CommonConstants.REPORT_TYPE_NOTHING_THERE:
                 return context.getResources().getString(R.string.report_found_nothing_there);
         }
         return null;
     }
 
+    public static void getNewData(Context context) {
+        Intent getDataIntent = new Intent(context, GetDataService.class);
+        getDataIntent.putExtra(ReceiverConstants.ACTION_TYPE, ReceiverConstants.ACTION_GET_DATA);
+        context.startService(getDataIntent);
+    }
+
+    /**
+     * returns a UUID
+     */
     public static String getDeviceUUID(Context context) {
-        /** returns a UUID */
-        return PreferenceManager.getDefaultSharedPreferences(context).getString(User.ACTIVE_DEVICE_DEV_UUID, null);
+        return PreferenceManager.getDefaultSharedPreferences(context).getString(context.getString(R.string.key_prefs_device_uuid), null);
     }
 
-    public static int getMyUserID(Context context) {
-        /** returns the userID from shared preferences */
-        return PreferenceManager.getDefaultSharedPreferences(context).getInt(User.IDENTITY_PROVIDER_USER_ID, -1);
+    /**
+     * returns the userID from shared preferences
+     */
+    public static long getMyUserID(Context context) {
+        long userID = PreferenceManager.getDefaultSharedPreferences(context).getLong(context.getString(R.string.key_prefs_user_id), (long) -1);
+        return userID;
     }
 
-    public static void setMyUserID(Context context, int userID) {
-        /** saves the userID to shared preferences */
-        PreferenceManager.getDefaultSharedPreferences(context).edit().putInt(User.IDENTITY_PROVIDER_USER_ID, userID).apply();
+    /**
+     * @return returns the userName from shared preferences
+     */
+    public static String getMyUserName(Context context) {
+        return PreferenceManager.getDefaultSharedPreferences(context).getString(context.getString(R.string.key_prefs_user_name), "");
+    }
+
+    /**
+     * saves the userID to shared preferences
+     */
+    public static void setMyUserID(Context context, long userID) {
+        PreferenceManager.getDefaultSharedPreferences(context).edit().putLong(context.getString(R.string.key_prefs_user_id), userID).apply();
     }
 
     public static String getMyUserPhone(Context context) {
-        return PreferenceManager.getDefaultSharedPreferences(context).getString(User.PHONE_NUMBER, null);
+        return PreferenceManager.getDefaultSharedPreferences(context).getString(context.getString(R.string.key_prefs_user_phone), null);
     }
 
+    public static LatLng getLastLocation(Context context) {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        return new LatLng(Double.valueOf(preferences.getString(context.getString(R.string.key_prefs_user_lat), String.valueOf(CommonConstants.LATLNG_ERROR))),
+                Double.valueOf(preferences.getString(context.getString(R.string.key_prefs_user_lng), String.valueOf(CommonConstants.LATLNG_ERROR))));
+    }
+
+    /**
+     * should increment negatively for a unique id until the server gives us a server unique publication id to replace it
+     */
     public static long getNewLocalPublicationID() {
-        /** should increment negatively for a unique id until the server gives us a server unique publication id to replace it */
         //todo add a check for available negative id, currently hard coded
-        return -1;
+        return (long) -1;
+    }
+
+    public static String getDigitsFromPhone(String origin) {
+        return origin.replaceAll("[^0-9]", "");
+    }
+
+    public static boolean comparePhoneNumbers(String first, String second) {
+        first = removeInternationalPhoneCode(getDigitsFromPhone(first));
+        second = removeInternationalPhoneCode(getDigitsFromPhone(second));
+        return PhoneNumberUtils.compare(first, second);
+    }
+
+    private static String removeInternationalPhoneCode(String phone) {
+        if (phone.startsWith("972")) {
+            phone = 0 + phone.substring(3);
+        }
+        return phone;
     }
 
     public static String getRoundedStringFromNumber(float num) {
@@ -189,13 +294,87 @@ public class CommonMethods {
         return df.format(num);
     }
 
-    /*
+    public static void sendNotification(Context context) {
+        Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        long loadNotificationsFromID = PreferenceManager.getDefaultSharedPreferences(context)
+                .getLong(context.getString(R.string.key_prefs_unread_notification_id), CommonConstants.NOTIFICATION_ID_CLEAR);
+        NotificationsDBHandler notificationsDBHandler = new NotificationsDBHandler(context);
+        ArrayList<NotificationFoodonet> notificationsToDisplay = notificationsDBHandler.getUnreadNotification(loadNotificationsFromID);
+
+        Intent resultIntent = new Intent(context, NotificationsDismissService.class);
+        resultIntent.setAction(CommonConstants.NOTIF_ACTION_OPEN);
+        PendingIntent resultPendingIntent = PendingIntent.getService(context, 0, resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Intent dismissNotificationsIntent = new Intent(context, NotificationsDismissService.class);
+        dismissNotificationsIntent.setAction(CommonConstants.NOTIF_ACTION_DISMISS);
+        PendingIntent dismissNotificationsPendingIntent = PendingIntent.getService(context, 0, dismissNotificationsIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        int notificationsToDisplaySize = notificationsToDisplay.size();
+        String contentText;
+        if(notificationsToDisplaySize >1){
+            contentText = String.format("%1$s %2$s",String.valueOf(notificationsToDisplaySize),context.getString(R.string.new_messages));
+        } else{
+            contentText = context.getString(R.string.new_message);
+        }
+        NotificationManager mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(context)
+                .setContentTitle(context.getString(R.string.foodonet))
+                .setContentText(contentText)
+                .setSound(defaultSoundUri)
+                .setAutoCancel(true)
+                .setDeleteIntent(dismissNotificationsPendingIntent)
+                .setContentIntent(resultPendingIntent)
+                .setSmallIcon(R.drawable.drawer_notifications)
+                .setGroup("foodonet")
+                .setGroupSummary(true);
+        NotificationCompat.InboxStyle inboxStyle = new NotificationCompat.InboxStyle()
+                .setBigContentTitle(context.getString(R.string.foodonet))
+                .setSummaryText(contentText);
+        NotificationFoodonet notification;
+        for(int i = 0; i < notificationsToDisplaySize && i < 7; i++){
+            if(i== 6){
+                inboxStyle.addLine(String.format("+ %1$s",String.valueOf(notificationsToDisplaySize - 6)));
+            } else{
+                notification = notificationsToDisplay.get(i);
+                inboxStyle.addLine(notification.getNotificationMessage(context));
+            }
+        }
+        mBuilder.setStyle(inboxStyle);
+
+        mNotificationManager.notify(1, mBuilder.build());
+    }
+
+    public static void updateUnreadNotificationID(Context context, long _id){
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+        String keyPrefsUnreadNotificationID = context.getString(R.string.key_prefs_unread_notification_id);
+        if(_id == CommonConstants.NOTIFICATION_ID_CLEAR ||
+                sharedPreferences.getLong(keyPrefsUnreadNotificationID,CommonConstants.NOTIFICATION_ID_CLEAR) == CommonConstants.NOTIFICATION_ID_CLEAR){
+            sharedPreferences.edit().putLong(keyPrefsUnreadNotificationID,_id).apply();
+        }
+    }
+
+    /** currently trying to update returns a 404, disabling for now */
+    public static void updateUserLocationToServer(Context context){
+        JSONObject activeDeviceRoot = new JSONObject();
+        JSONObject activeDevice = new JSONObject();
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        try {
+            activeDevice.put("dev_uuid",CommonMethods.getDeviceUUID(context));
+            activeDevice.put("last_location_latitude", preferences.getString(context.getString(R.string.key_prefs_user_lat), String.valueOf(CommonConstants.LATLNG_ERROR)));
+            activeDevice.put("last_location_longitude", preferences.getString(context.getString(R.string.key_prefs_user_lng),String.valueOf(CommonConstants.LATLNG_ERROR)));
+            activeDeviceRoot.put("active_device",activeDevice);
+            ServerMethods.activeDeviceUpdateLocation(context,activeDeviceRoot.toString());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Calculate distance between two points in latitude and longitude taking
      * into account height difference.
      * Uses Haversine method as its base. Distance in Meters
      */
-    public static double distance(double lat1, double lng1, double lat2,
-                                  double lng2) {
+    public static double distance(double lat1, double lng1, double lat2, double lng2) {
 
         final int R = 6371; // Radius of the earth
 
@@ -209,8 +388,48 @@ public class CommonMethods {
         return distance;
     }
 
+    public static int[] getListIndexSortedValues(ArrayList<Double> list){
+        int length = list.size();
+        TreeMap<Integer,Double> listMap = new TreeMap<>();
+        for (int i = 0; i < length; i++) {
+            listMap.put(i,list.get(i));
+        }
+        double num;
+        double lastMin = -1;
+        double min;
+        int minIndex;
+        int lastMinIndex = -1;
+        int[] sortedIndex = new int[length];
+        for (int i = 0; i < length; i++) {
+            min = -1;
+            minIndex = -1;
+            for (int j = 0; j < length; j++) {
+                num = listMap.get(j);
+                if(min == -1 && num > lastMin){
+                    min = num;
+                    minIndex = j;
+                }
+                if(num == lastMin){
+                    if(j > lastMinIndex){
+                        minIndex = j;
+                        min = lastMin;
+                        break;
+                    }
+                }
+                if(num < min && num > lastMin){
+                    min = num;
+                    minIndex = j;
+                }
+            }
+            lastMin = min;
+            lastMinIndex = minIndex;
+            sortedIndex[i] = minIndex;
+        }
+        return sortedIndex;
+    }
+
+    /** Creates a local image file name for taking the picture with the camera */
     public static File createImageFile(Context context) throws IOException {
-        /** Creates a local image file name for taking the picture with the camera */
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES);
@@ -220,8 +439,8 @@ public class CommonMethods {
                 storageDir      /* directory */);
     }
 
+    /** Creates a local image file name for downloaded images from s3 server of a specific publication */
     public static File createImageFile(Context context, long publicationID) throws IOException {
-        /** Creates a local image file name for downloaded images from s3 server of a specific publication */
         String imageFileName = "PublicationID." + publicationID;
         File storageDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES);
 //        return File.createTempFile(
@@ -230,18 +449,23 @@ public class CommonMethods {
 //                storageDir      /* directory */);
 
         File newFile = new File(storageDir.getPath() + "/" + imageFileName + ".jpg");
-        Log.d(TAG, "newFile = " + newFile.getPath());
         return newFile;
     }
 
+    /** @return file name from publicationID */
+    public static String getFileNameFromPublicationID(long publicationID,int version){
+        return String.format(Locale.US,"%1$d.%2$d.jpg",
+                publicationID,version);
+    }
+
+    /** returns the file name without the path */
     public static String getFileNameFromPath(String path) {
-        /** returns the file name without the path */
         String[] segments = path.split("/");
         return segments[segments.length - 1];
     }
 
+    /** returns the file name without the path */
     public static String getPublicationIDFromFile(String path) {
-        /** returns the file name without the path */
         String[] segments = path.split(".");
         if (segments.length > 1) {
             return segments[segments.length - 2];
@@ -250,74 +474,79 @@ public class CommonMethods {
         }
     }
 
-    public static String getPhotoPathByID(Context context, long publicationID) {
-        /** Creates a local image file name for downloaded images from s3 server of a specific publication */
-        String imageFileName = "PublicationID." + publicationID;
-        String storageDir = (context.getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath());
-//        return File.createTempFile(
-//                imageFileName,  /* prefix */
-//                ".jpg",         /* suffix */
-//                storageDir      /* directory */);
-        String newFile = storageDir + "/" + imageFileName + ".jpg";
-        Log.d(TAG, "newFile = " + newFile);
-        return newFile;
-    }
-
-    public static boolean editOverwriteImage(String mCurrentPhotoPath, Bitmap sourceImage) {
-        /** after capturing an image, we'll crop, downsize and compress it to be sent to the s3 server,
-         * then, it will overwrite the local original one.
-         * returns true if successful*/
-        return compressImage(sourceImage,mCurrentPhotoPath);
-    }
-    public static boolean editOverwriteImage(Context context, String mCurrentPhotoPath){
-        /** after capturing an image, we'll crop, downsize and compress it to be sent to the s3 server,
-         * then, it will overwrite the local original one.
-         * returns true if successful*/
-        try {
-            Bitmap sourceBitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), Uri.parse("file:" + mCurrentPhotoPath));
-            return compressImage(sourceBitmap,mCurrentPhotoPath);
-        } catch (IOException e) {
-            Log.e(TAG, e.getMessage());
+    /** Creates a local image file name for downloaded images from s3 server of a specific publication */
+    public static String getPhotoPathByID(Context context, long publicationID, int version) {
+        String imageFileName = getFileNameFromPublicationID(publicationID,version);
+        File directoryPictures = (context.getExternalFilesDir(Environment.DIRECTORY_PICTURES));
+        if(directoryPictures!= null){
+            String storageDir = directoryPictures.getPath();
+            return storageDir + "/" + imageFileName;
         }
-        return false;
+
+        return null;
     }
 
-    private static boolean compressImage(Bitmap sourceBitmap, String mCurrentPhotoPath){
+    public static String compressImage(Context context, Uri uri, String photoPath) throws FileNotFoundException {
         /** ratio - 16:9 */
         final float ratio = 16 / 9f;
-        final int WANTED_HEIGHT = 720;
+        final int WANTED_HEIGHT = 560;
         final int WANTED_WIDTH = (int) (WANTED_HEIGHT * ratio);
-        Bitmap cutBitmap;
+
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        if(uri != null){
+            BitmapFactory.decodeStream(context.getContentResolver().openInputStream(uri),null,options);
+        } else{
+            BitmapFactory.decodeFile(photoPath,options);
+        }
+        int originHeight = options.outHeight;
+        int originWidth = options.outWidth;
+        int scale = 1;
+        while(true) {
+            if(originWidth / 2 < WANTED_WIDTH || originHeight / 2 < WANTED_HEIGHT)
+                break;
+            originWidth /= 2;
+            originHeight /= 2;
+            scale *= 2;
+        }
+
+        options.inJustDecodeBounds = false;
+        options.inSampleSize = scale;
+        Bitmap bitmap;
+        if(uri!= null){
+            bitmap = BitmapFactory.decodeStream(context.getContentResolver().openInputStream(uri),null,options);
+        } else{
+            bitmap = BitmapFactory.decodeFile(photoPath,options);
+        }
 
         /** cut the image to display as a 16:9 image */
-        if (sourceBitmap.getHeight() * ratio < sourceBitmap.getWidth()) {
+        if (bitmap.getHeight() * ratio < bitmap.getWidth()) {
             /** full height of the image, cut the width*/
-            cutBitmap = Bitmap.createBitmap(
-                    sourceBitmap,
-                    (int) ((sourceBitmap.getWidth() - (sourceBitmap.getHeight() * ratio)) / 2),
+            bitmap = Bitmap.createBitmap(
+                    bitmap,
+                    (int) ((bitmap.getWidth() - (bitmap.getHeight() * ratio)) / 2),
                     0,
-                    (int) (sourceBitmap.getHeight() * ratio),
-                    sourceBitmap.getHeight()
+                    (int) (bitmap.getHeight() * ratio),
+                    bitmap.getHeight()
             );
         } else {
             /** full width of the image, cut the height*/
-            cutBitmap = Bitmap.createBitmap(
-                    sourceBitmap,
+            bitmap = Bitmap.createBitmap(
+                    bitmap,
                     0,
-                    (int) ((sourceBitmap.getHeight() - (sourceBitmap.getWidth() / ratio)) / 2),
-                    sourceBitmap.getWidth(),
-                    (int) (sourceBitmap.getWidth() / ratio)
+                    (int) ((bitmap.getHeight() - (bitmap.getWidth() / ratio)) / 2),
+                    bitmap.getWidth(),
+                    (int) (bitmap.getWidth() / ratio)
             );
         }
         /** scale the image down*/
-        Bitmap scaledBitmap = Bitmap.createScaledBitmap(cutBitmap, WANTED_WIDTH, WANTED_HEIGHT, false);
+        bitmap = Bitmap.createScaledBitmap(bitmap, WANTED_WIDTH, WANTED_HEIGHT, false);
 
-        /** compress the image and overwrite the original one*/
         FileOutputStream out = null;
         try {
-            out = new FileOutputStream(mCurrentPhotoPath);
-            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
-            return true;
+            out = new FileOutputStream(photoPath);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            return photoPath;
         } catch (Exception e) {
             Log.e(TAG, e.getMessage());
         } finally {
@@ -329,9 +558,8 @@ public class CommonMethods {
                 Log.e(TAG, e.getMessage());
             }
         }
-        return false;
+        return photoPath;
     }
-
 
     /**
      * Gets an instance of CognitoCachingCredentialsProvider which is
@@ -344,8 +572,11 @@ public class CommonMethods {
         if (sCredProvider == null) {
             sCredProvider = new CognitoCachingCredentialsProvider(
                     context.getApplicationContext(),
+                    context.getResources().getString(R.string.amazon_aws_account_id),
                     context.getResources().getString(R.string.amazon_pool_id),
-                    Regions.EU_WEST_1);
+                    context.getResources().getString(R.string.amazon_unauthorized),
+                    context.getResources().getString(R.string.amazon_authorized),
+                    Regions.US_EAST_1);
         }
         return sCredProvider;
     }
@@ -381,7 +612,8 @@ public class CommonMethods {
     }
 
 
-    public static boolean ifInternetIsEnable(Context context) {
+    // TODO: 17/01/2017 not tested yet
+    public static boolean isInternetEnabled(Context context) {
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
         if (activeNetwork != null) { // connected to the internet
@@ -401,7 +633,7 @@ public class CommonMethods {
         return false;
     }
 
-    public static boolean ifGpsIsEnable(Context context){
+    public static boolean isGpsEnabled(Context context){
         final LocationManager manager = (LocationManager) context.getSystemService( Context.LOCATION_SERVICE );
 
         if (manager.isProviderEnabled( LocationManager.GPS_PROVIDER ) ) {
@@ -410,6 +642,4 @@ public class CommonMethods {
             return false;
         }
     }
-
-
 }

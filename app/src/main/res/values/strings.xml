@@ -16,8 +16,8 @@
 
     <string name="post_hint_what_would_you_like_to_share">What would you like to share?</string>
     <string name="post_hint_pickup_address">Pickup address</string>
-    <string name="post_hint_share_with">Share with</string>
-    <string name="post_hint_add_more_details">Add more details</string>
+    <string name="post_hint_share_with">Share with:</string>
+    <string name="post_hint_additional_details">Additional details</string>
     <string name="post_please_enter_all_fields">Please enter all fields</string>
     <string name="post_hint_choose_date_to_end">Choose date to end</string>
     <string name="post_hint_price">Price</string>
@@ -61,7 +61,7 @@
     <string name="rotate_the_phone">Rotate the phone</string>
     <string name="send">send</string>
     <string name="create">Create</string>
-    <string name="cancel">cancel</string>
+    <string name="cancel">Cancel</string>
 
     <string name="about_us_info">Foodonet is a social initiative aiming to reduce food waste.\nFoodonet develops a mobile platform that allows people to easily donate spare food to one another.\nFoodonet is connecting food producers directly to customers with no mediators and cutting food costs</string>
     <string name="prefs_profile_settings">Profile Settings</string>
@@ -80,5 +80,70 @@
     <string name="please_wait">Please wait</string>
     <string name="failed_to_pick_contact">Failed to pick contact</string>
     <string name="foodonet_group_members">/group_members</string>
+    <string name="active_shares">Active Shares</string>
+    <string name="new_share">New Share</string>
+    <string name="edit">Edit</string>
+    <string name="take_offline">Take Offline</string>
+    <string name="delete">Delete</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="users_joined">users joined</string>
+    <string name="h_hours">h</string>
+    <string name="min_minutes">min</string>
+    <string name="day">day</string>
+    <string name="price">Price:</string>
+    <string name="you_dont_have_any_groups_yet">You don\'t have any groups yet</string>
+    <string name="hi_what_would_you_like_to_share">Hi,\nWhat would you like\nto share?</string>
+
+    <string name="title_activity_fullscreen_image">FullscreenActivityImage</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="new_location">New location</string>
+    <string name="view_pager_tab_active">Active</string>
+    <string name="view_pager_tab_recent">Recent</string>
+    <string name="view_pager_tab_closest">Closest</string>
+    <string name="not_signed_in">Not signed in</string>
+    <string name="dialog_please_report">Please Report</string>
+    <string name="dialog_has_more_to_pickup">Has More to Pickup</string>
+    <string name="dialog_i_took_all">I Took All</string>
+    <string name="dialog_found_nothing_there">Found Nothing There</string>
+    <string name="dialog_please_rate">Please Rate</string>
+    <string name="not_rated">Not rated</string>
+    <string name="deleted">Deleted</string>
+    <string name="you_can_only_report_once">You can only report once</string>
+    <string name="unregister">Unregister</string>
+    <string name="start_sharing_by_adding_an_image_of_the_food_you_wish_to_share">Start sharing by adding\n an image of the food\n you wish to share</string>
+    <string name="sms_to_publisher_part1">Hi, about your event in Foodonet:\n</string>
+    <string name="sms_to_publisher_part2">, can I come and pick it up?\nthanks,\n</string>
+
+    <string name="sms_to_registered_user_part1">Hi, about my event in Foodonet:\n</string>
+    <string name="sms_to_registered_user_part2">, when would you like to pick it up?\nthanks,\n </string>
+
+    <string name="welcome_to_foodonet">Welcome to Foodonet</string>
+    <string name="last_step">Last step</string>
+    <string name="phone">Phone</string>
+    <string name="start_sharing">Start sharing</string>
+    <string name="continue_without_registration">Continue without registration</string>
+    <string name="unregistered">Unregistered</string>
+    <string name="dialog_select_contact">Select contact</string>
+    <string name="ok">OK</string>
+    <string name="prefs_user_name">User Name</string>
+    <string name="prefs_phone_number">Phone Number</string>
+    <string name="prefs_get_notifications">Get Notifications</string>
+    <string name="prefs_notification_radius">Notification Radius</string>
+    <string name="prefs_all">All</string>
+    <string name="success">Success</string>
+    <string name="invalid_phone_number">invalid phone number</string>
+    <string name="toast_user_already_in_group">User already in group</string>
+    <string name="dialog_are_you_sure">Are you sure?</string>
+    <string name="toast_there_are_no_registered_users">There are no registered users</string>
+    <string name="dialog_please_wait">Please wait</string>
+    <string name="menu_exit_group">Exit group</string>
+    <string name="got_a_new_report">got a new report</string>
+    <string name="notifications">Notifications</string>
+    <string name="event_no_longer_online">Event no longer online</string>
+    <string name="new_messages">new messages</string>
+    <string name="new_message">new message</string>
+    <string name="clear_notifications">Clear notifications</string>
 
 </resources>

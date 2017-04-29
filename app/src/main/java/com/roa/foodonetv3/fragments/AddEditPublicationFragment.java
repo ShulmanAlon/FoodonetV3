@@ -2,87 +2,105 @@ package com.roa.foodonetv3.fragments;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
+import android.os.Parcelable;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.FileProvider;
+import android.support.v4.content.LocalBroadcastManager;
+import android.text.InputFilter;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
-import com.google.android.gms.location.places.Place;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
+import com.bumptech.glide.Glide;
 import com.roa.foodonetv3.R;
 import com.roa.foodonetv3.activities.PlacesActivity;
+import com.roa.foodonetv3.activities.PublicationActivity;
 import com.roa.foodonetv3.activities.SplashForCamera;
+import com.roa.foodonetv3.commonMethods.CommonConstants;
 import com.roa.foodonetv3.commonMethods.CommonMethods;
+import com.roa.foodonetv3.commonMethods.DecimalDigitsInputFilter;
+import com.roa.foodonetv3.commonMethods.OnReceiveResponse;
+import com.roa.foodonetv3.commonMethods.OnReplaceFragListener;
 import com.roa.foodonetv3.commonMethods.ReceiverConstants;
+import com.roa.foodonetv3.db.GroupsDBHandler;
+import com.roa.foodonetv3.model.Group;
 import com.roa.foodonetv3.model.Publication;
-import com.roa.foodonetv3.model.User;
-import com.roa.foodonetv3.services.FoodonetService;
-import com.squareup.picasso.Picasso;
-
+import com.roa.foodonetv3.model.SavedPlace;
+import com.roa.foodonetv3.serverMethods.ServerMethods;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 
-public class AddEditPublicationFragment extends Fragment implements View.OnClickListener {
+public class AddEditPublicationFragment extends Fragment implements View.OnClickListener{
     public static final String TAG = "AddEditPublicationFrag";
     private static final int INTENT_TAKE_PICTURE = 1;
-    private static final int INTENT_PICK_PICTURE = 3;
+    private static final int INTENT_PICK_PICTURE = 2;
     public static final int TYPE_NEW_PUBLICATION = 1;
     public static final int TYPE_EDIT_PUBLICATION = 2;
-    private EditText editTextTitleAddPublication, editTextPriceAddPublication, editTextShareWithAddPublication, editTextDetailsAddPublication;
+    private EditText editTextTitleAddPublication, editTextPriceAddPublication, editTextDetailsAddPublication;
+    private Spinner spinnerShareWith;
     private TextView textLocationAddPublication;
     private long endingDate;
-    private String mCurrentPhotoPath;
+    private String mCurrentPhotoPath, pickPhotoPath;
     private ImageView imagePictureAddPublication;
-    private LatLng latlng;
+    private SavedPlace place;
     private Publication publication;
     private boolean isEdit;
-    private static int savePrefCount = 0;
-    private SharedPreferences preferences;
+    private ArrayList<Group> groups;
+    private ArrayAdapter<String> spinnerAdapter;
+    private FoodonetReceiver receiver;
+    private View layoutInfo;
+    private OnReceiveResponse onReceiveResponseListener;
+    private OnReplaceFragListener onReplaceFragListener;
 
-
-
-    /**
-     * The TransferUtility is the primary class for managing transfer to S3
-     */
-    private TransferUtility transferUtility;
 
     public AddEditPublicationFragment() {
         // Required empty public constructor
     }
 
     @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        onReceiveResponseListener = (OnReceiveResponse) context;
+        onReplaceFragListener = (OnReplaceFragListener) context;
+    }
+
+    @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        /** instantiate the transfer utility for the s3*/
-        transferUtility = CommonMethods.getTransferUtility(getContext());
-        /** local image path that will be used for saving locally and uploading the file name to the server*/
+//        /** instantiate the transfer utility for the s3*/
+//        transferUtility = CommonMethods.getTransferUtility(getContext());
+
+        // local image path that will be used for saving locally and uploading the file name to the server*/
         mCurrentPhotoPath = "";
 
+        receiver = new FoodonetReceiver();
         isEdit = getArguments().getInt(TAG, TYPE_NEW_PUBLICATION) != TYPE_NEW_PUBLICATION;
+
         if (isEdit) {
-            /** if there's a publication in the intent - it is an edit of an existing publication */
+            // if there's a publication in the intent - it is an edit of an existing publication */
             if (savedInstanceState == null) {
-                /** also check if there's a savedInstanceState, if there isn't - load the publication, if there is - load from savedInstanceState */
+                // also check if there's a savedInstanceState, if there isn't - load the publication, if there is - load from savedInstanceState */
                 publication = getArguments().getParcelable(Publication.PUBLICATION_KEY);
-                latlng = new LatLng(publication.getLat(), publication.getLng());
+                place = new SavedPlace(publication.getAddress(),publication.getLat(),publication.getLng());
             } else {
                 // TODO: 19/11/2016 add savedInstanceState reader
             }
@@ -95,42 +113,93 @@ public class AddEditPublicationFragment extends Fragment implements View.OnClick
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_add_edit_publication, container, false);
 
+        String title = getString(R.string.new_share);
+        if(isEdit){
+            title = publication.getTitle();
+        }
+        getActivity().setTitle(title);
+
+        // set layouts */
         editTextTitleAddPublication = (EditText) v.findViewById(R.id.editTextTitleAddPublication);
         textLocationAddPublication = (TextView) v.findViewById(R.id.textLocationAddPublication);
         textLocationAddPublication.setOnClickListener(this);
-        editTextShareWithAddPublication = (EditText) v.findViewById(R.id.editTextShareWithAddPublication);
+        spinnerShareWith = (Spinner) v.findViewById(R.id.spinnerShareWith);
+        spinnerAdapter = new ArrayAdapter<>(getContext(),R.layout.item_spinner_groups,R.id.textGroupName);
+        spinnerShareWith.setAdapter(spinnerAdapter);
         editTextDetailsAddPublication = (EditText) v.findViewById(R.id.editTextDetailsAddPublication);
         editTextPriceAddPublication = (EditText) v.findViewById(R.id.editTextPriceAddPublication);
+        editTextPriceAddPublication.setFilters(new InputFilter[] {new DecimalDigitsInputFilter(5,2)});
         v.findViewById(R.id.imageTakePictureAddPublication).setOnClickListener(this);
         imagePictureAddPublication = (ImageView) v.findViewById(R.id.imagePictureAddPublication);
-        preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 
-        /** temporary button to add a test publication to the server */
-        v.findViewById(R.id.buttonTestAdd).setOnClickListener(this);
+        if(isEdit){
+            spinnerShareWith.setEnabled(false);
+            mCurrentPhotoPath = CommonMethods.getPhotoPathByID(getContext(),publication.getId(),publication.getVersion());
+            File mCurrentPhotoFile = null;
+            if (mCurrentPhotoPath != null) {
+                mCurrentPhotoFile = new File(mCurrentPhotoPath);
+                if(mCurrentPhotoFile.isFile()){
+                    // there's an image path, try to load from file */
+                    Glide.with(this).load(mCurrentPhotoFile).centerCrop().into(imagePictureAddPublication);
+            }
+            } else{
+                // load default image */
+                Glide.with(this).load(R.drawable.foodonet_image).centerCrop().into(imagePictureAddPublication);
+            }
+        }
+
+        layoutInfo = v.findViewById(R.id.layoutInfo);
+        layoutInfo.setBackgroundColor(getResources().getColor(R.color.fooLightGrey));
+        layoutInfo.setVisibility(View.GONE);
+        TextView textInfo = (TextView) v.findViewById(R.id.textInfo);
+        textInfo.setText(R.string.start_sharing_by_adding_an_image_of_the_food_you_wish_to_share);
+        textInfo.setTextSize(getResources().getDimension(R.dimen.text_size_12));
+        if (isEdit) {
+            loadPublicationIntoViews();
+        }
         return v;
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if (mCurrentPhotoPath == null) {
-            /** check if there is no path yet, if not, load the default image */
-            // TODO: 13/11/2016 fix image size error
-            Picasso.with(getContext()).load(R.drawable.foodonet_image)
-                    //                .resize(imagePictureAddPublication.getWidth(),imagePictureAddPublication.getHeight())
-                    //                .centerCrop()
-                    .into(imagePictureAddPublication);
+        IntentFilter filter = new IntentFilter(ReceiverConstants.BROADCAST_FOODONET);
+        LocalBroadcastManager.getInstance(getContext()).registerReceiver(receiver,filter);
+
+        GroupsDBHandler handler = new GroupsDBHandler(getContext());
+        groups = handler.getAllGroupsWithPublic();
+        String[] groupsNames = new String[groups.size()];
+        Group group;
+        String groupName;
+        for (int i = 0; i < groups.size(); i++) {
+            group = groups.get(i);
+            groupName = group.getGroupName();
+            groupsNames[i] = groupName;
         }
-        if (isEdit) {
-            loadPublicationIntoViews();
+        spinnerAdapter.clear();
+        spinnerAdapter.addAll(groupsNames);
+
+        if (mCurrentPhotoPath == null|| mCurrentPhotoPath.equals("")) {
+            layoutInfo.setVisibility(View.VISIBLE);
+            imagePictureAddPublication.setVisibility(View.GONE);
+        } else{
+            layoutInfo.setVisibility(View.GONE);
+            imagePictureAddPublication.setVisibility(View.VISIBLE);
         }
     }
 
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(receiver);
+    }
+
     public void loadPublicationIntoViews() {
-        // TODO: 19/11/2016 test
         editTextTitleAddPublication.setText(publication.getTitle());
         textLocationAddPublication.setText(publication.getAddress());
-        editTextShareWithAddPublication.setText("currently not working");
+        // TODO: 29/12/2016 add logic to spinner
+//        spinnerShareWith.set
         editTextDetailsAddPublication.setText(publication.getSubtitle());
         editTextPriceAddPublication.setText(String.valueOf(publication.getPrice()));
     }
@@ -138,33 +207,23 @@ public class AddEditPublicationFragment extends Fragment implements View.OnClick
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.buttonTestAdd:
-                /** button for uploading the publication to the server, if an image was taken,
-                 *  start uploading to the s3 server as well, currently no listener for s3 finished upload*/
-                uploadPublicationToServer();
-                if (!mCurrentPhotoPath.equals("")) {
-                    beginS3Upload("file:" + mCurrentPhotoPath);
-                } else {
-                    Toast.makeText(getContext(), "no photo path", Toast.LENGTH_SHORT).show();
-                }
-                break;
             case R.id.imageTakePictureAddPublication:
                 AlertDialog.Builder dialog = new AlertDialog.Builder(getContext())
                         .setTitle(R.string.add_image)
                         .setPositiveButton(R.string.camera, new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                /** start the popup activity*/
+                                // start the popup activity*/
                                 getContext().startActivity(new Intent(getContext(), SplashForCamera.class));
-                                /**wait for the popup activity before start the camera */
+                                // wait for the popup activity before starting the camera */
                                 Thread thread = new Thread() {
                                     @Override
                                     public void run() {
                                         super.run();
                                         synchronized (getContext()) {
                                             try {
-                                                getContext().wait(SplashForCamera.TIMER);
-                                                /** starts the image taking intent through the default app*/
+                                                getContext().wait(CommonConstants.SPLASH_CAMERA_TIME);
+                                                // starts the image taking intent through the default app*/
                                                 dispatchTakePictureIntent();
                                             } catch (InterruptedException e) {
                                                 e.printStackTrace();
@@ -178,6 +237,7 @@ public class AddEditPublicationFragment extends Fragment implements View.OnClick
                         .setNegativeButton(R.string.gallery, new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
+                                // get image from gallery */
                                 dispatchPickPictureIntent();
                             }
                         });
@@ -185,37 +245,14 @@ public class AddEditPublicationFragment extends Fragment implements View.OnClick
 
                 break;
             case R.id.textLocationAddPublication:
+                // start the google places select activity */
                 startActivityForResult(new Intent(getContext(), PlacesActivity.class), PlacesActivity.REQUEST_PLACE_PICKER);
-                /** start the google places autocomplete widget */
-//                try {
-//                    PlacePicker.IntentBuilder intentBuilder = new PlacePicker.IntentBuilder();
-//                    Intent intent = intentBuilder.build(getActivity());
-////                    Intent intent =
-////                            new PlaceAutocomplete.IntentBuilder(PlaceAutocomplete.MODE_FULLSCREEN)
-////                                    .build(getActivity());
-//                    // Start the Intent by requesting a result, identified by a request code.
-//                    startActivityForResult(intent, REQUEST_PLACE_PICKER);
-//
-//                    // Hide the pick option in the UI to prevent users from starting the picker
-//                    // multiple times.
-////                    showPickAction(false);
-//
-//                } catch (GooglePlayServicesRepairableException e) {
-//                    GooglePlayServicesUtil
-//                            .getErrorDialog(e.getConnectionStatusCode(), getActivity(), 0);
-//                } catch (GooglePlayServicesNotAvailableException e) {
-//                    Toast.makeText(getActivity(), "Google Play Services is not available.",
-//                            Toast.LENGTH_LONG)
-//                            .show();
-//                }
-//
-//                // END_INCLUDE(intent)
                 break;
         }
     }
 
+    /** starts the image taking intent through the default app*/
     private void dispatchTakePictureIntent() {
-        /** starts the image taking intent through the default app*/
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
         if (takePictureIntent.resolveActivity(getContext().getPackageManager()) != null) {
@@ -223,8 +260,7 @@ public class AddEditPublicationFragment extends Fragment implements View.OnClick
             File photoFile = null;
             try {
                 photoFile = CommonMethods.createImageFile(getContext());
-                mCurrentPhotoPath = photoFile.getPath();
-                Log.d(TAG, "photo path: " + mCurrentPhotoPath);
+                pickPhotoPath = photoFile.getPath();
             } catch (IOException ex) {
                 // Error occurred while creating the File
                 Log.e(TAG, ex.getMessage());
@@ -240,6 +276,7 @@ public class AddEditPublicationFragment extends Fragment implements View.OnClick
         }
     }
 
+    /** get image from gallery app installed */
     private void dispatchPickPictureIntent() {
         Intent getIntent = new Intent(Intent.ACTION_GET_CONTENT);
         getIntent.setType("image/*");
@@ -253,8 +290,8 @@ public class AddEditPublicationFragment extends Fragment implements View.OnClick
         File photoFile = null;
         try {
             photoFile = CommonMethods.createImageFile(getContext());
-            mCurrentPhotoPath = photoFile.getPath();
-            Log.d(TAG, "photo path: " + mCurrentPhotoPath);
+            pickPhotoPath = photoFile.getPath();
+            Log.d(TAG, "photo path: " + pickPhotoPath);
             startActivityForResult(chooserIntent, INTENT_PICK_PICTURE);
         } catch (IOException ex) {
             // Error occurred while creating the File
@@ -268,137 +305,47 @@ public class AddEditPublicationFragment extends Fragment implements View.OnClick
         if (resultCode == Activity.RESULT_OK) {
             switch (requestCode) {
 
+                // an image was successfully taken, since we have the path already,
+                //  we'll run the editOverwriteImage method that scales down, shapes and overwrites the images in the path
+                //  returns true if successful*/
                 case INTENT_TAKE_PICTURE:
-                    /** an image was successfully taken, since we have the path already,
-                     *  we'll run the editOverwriteImage method that scales down, shapes and overwrites the images in the path
-                     *  returns true if successful*/
-                    if (CommonMethods.editOverwriteImage(getContext(), mCurrentPhotoPath)) {
-                        /** let picasso handle the caching and scaling to the imageView */
-                        Picasso.with(getContext())
-                                .load("file:" + mCurrentPhotoPath)
-                                .resize(imagePictureAddPublication.getWidth(), imagePictureAddPublication.getHeight())
-                                .centerCrop()
-                                .into(imagePictureAddPublication);
-                    }
-                    break;
-                case INTENT_PICK_PICTURE:
-                    /** an image was successfully picked, since we have the path already,
-                     *  we'll run the editOverwriteImage method that scales down, shapes and overwrites the images in the path
-                     *  returns true if successful*/
-                    Uri uri = data.getData();
-
+                    mCurrentPhotoPath = pickPhotoPath;
                     try {
-                        Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContext().getContentResolver(), uri);
-                        if (CommonMethods.editOverwriteImage(mCurrentPhotoPath,bitmap)) {
-                            /** let picasso handle the caching and scaling to the imageView */
-                            Picasso.with(getContext())
-                                    .load("file:" + mCurrentPhotoPath)
-                                    .resize(imagePictureAddPublication.getWidth(), imagePictureAddPublication.getHeight())
-                                    .centerCrop()
-                                    .into(imagePictureAddPublication);
-                        }
-                    } catch (IOException e) {
-                        Log.e(TAG,e.getMessage());
+                        Glide.with(this).load(CommonMethods.compressImage(getContext(), null, mCurrentPhotoPath)).centerCrop().into(imagePictureAddPublication);
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
                     }
                     break;
-//                case REQUEST_PLACE_PICKER:
-//                    /** a place was successfully received from the place autocomplete sdk, including the address, and latlng */
-//                    final Place place = PlacePicker.getPlace(getContext(), data);
-//                    final CharSequence address = place.getAddress();
-//                    latlng = place.getLatLng();
-//                    textLocationAddPublication.setText(address);
-//                    savePlaces(place, latlng);
-//                    Toast.makeText(getContext(), "latlng: " + place.getLatLng().toString(), Toast.LENGTH_SHORT).show();
-//                    break;
+                // an image was successfully picked, since we have the path already,
+                //  we'll run the editOverwriteImage method that scales down, shapes and overwrites the images in the path
+                //  returns true if successful*/
+                case INTENT_PICK_PICTURE:
+                    mCurrentPhotoPath = pickPhotoPath;
+                    try {
+                        Glide.with(this).load(CommonMethods.compressImage(getContext(), data.getData(), mCurrentPhotoPath)).centerCrop().into(imagePictureAddPublication);
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                    break;
                 case PlacesActivity.REQUEST_PLACE_PICKER:
-                    Place place = null;
-                    String address = "";
-                    if (data.getParcelableExtra("place")!= null){
-                        place = data.getParcelableExtra("place");
-                        address = place.getAddress().toString();
-                        latlng = place.getLatLng();
-                        textLocationAddPublication.setText(address);
-
-                    }else {
-                        address = data.getStringExtra("address");
-                        latlng = new LatLng(data.getFloatExtra("lat",0), data.getFloatExtra("long",0));
-                        textLocationAddPublication.setText(address);
-                    }
-                    int count =0;
-                    while (count<=4){
-                        if (address.equals(preferences.getString("place_name"+count,"error"))){
-                            return;
-                        }else {
-                            count++;
-                        }
-                    }
-                    savePlaces(address,latlng);
+                    place = data.getParcelableExtra("place");
+                    textLocationAddPublication.setText(place.getAddress());
                     break;
             }
         }
     }
-//    @Override
-//    public void onPlaceClicked(int position) {
-//        if (position==0){
-//            /** start the google places autocomplete widget */
-//            try {
-//                PlacePicker.IntentBuilder intentBuilder = new PlacePicker.IntentBuilder();
-//                Intent intent = intentBuilder.build(getActivity());
-////                    Intent intent =
-////                            new PlaceAutocomplete.IntentBuilder(PlaceAutocomplete.MODE_FULLSCREEN)
-////                                    .build(getActivity());
-//                // Start the Intent by requesting a result, identified by a request code.
-//                startActivityForResult(intent, REQUEST_PLACE_PICKER);
-//
-//                // Hide the pick option in the UI to prevent users from starting the picker
-//                // multiple times.
-////                    showPickAction(false);
-//
-//            } catch (GooglePlayServicesRepairableException e) {
-//                GooglePlayServicesUtil
-//                        .getErrorDialog(e.getConnectionStatusCode(), getActivity(), 0);
-//            } catch (GooglePlayServicesNotAvailableException e) {
-//                Toast.makeText(getActivity(), "Google Play Services is not available.",
-//                        Toast.LENGTH_LONG)
-//                        .show();
-//            }
-//        }else {
-//            position = position--;
-//            String address = preferences.getString("place_name"+position,"error");
-//            textLocationAddPublication.setText(address);
-//            LatLng latLng = new LatLng(preferences.getFloat("lat"+position,0), preferences.getFloat("long"+savePrefCount,0));
-//            this.latlng = latLng;
-//        }
-//    }
 
-    public void savePlaces(String address, LatLng latLng){
-//        String address = place.getAddress().toString();
-        SharedPreferences.Editor editor = preferences.edit();
-                editor.putFloat("lat"+savePrefCount, (float) latLng.latitude);
-                editor.putFloat("long"+savePrefCount, (float) latLng.longitude);
-                editor.putString("place_name"+savePrefCount, address);
-                editor.apply();
-                if (savePrefCount<4) {
-                    savePrefCount++;
-                }else {
-                    savePrefCount=0;
-                }
-    }
-
-
-    public void uploadPublicationToServer() {
-        /** upload the publication to the foodonet server */
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        String contactInfo = PreferenceManager.getDefaultSharedPreferences(getContext()).getString(User.PHONE_NUMBER, "");
+    public void uploadPublicationToServer(boolean isAddNewPublication) {
+        // upload the publication to the foodonet server */
+        String contactInfo = CommonMethods.getMyUserPhone(getContext());
         String title = editTextTitleAddPublication.getText().toString();
         String location = textLocationAddPublication.getText().toString();
         String priceS = editTextPriceAddPublication.getText().toString();
-        String shareWith = editTextShareWithAddPublication.getText().toString();
         String details = editTextDetailsAddPublication.getText().toString();
-        /** currently starting time is now */
+        // currently starting time is now */
         long startingDate = System.currentTimeMillis()/1000;
         if (endingDate == 0) {
-            /** default ending date is 2 days after creation */
+            // default ending date is 2 days after creation */
             endingDate = startingDate + 172800;
         }
         long localPublicationID;
@@ -407,8 +354,16 @@ public class AddEditPublicationFragment extends Fragment implements View.OnClick
         } else {
             localPublicationID = publication.getId();
         }
-        if (title.equals("") || location.equals("") || shareWith.equals("") || latlng == null) {
+        String photoPath;
+        if(mCurrentPhotoPath==null || mCurrentPhotoPath.equals("")){
+            photoPath = null;
+        } else{
+            photoPath = "file:"+mCurrentPhotoPath;
+        }
+        if (title.equals("") || location.equals("") || place.getLat()== CommonConstants.LATLNG_ERROR || place.getLng()==CommonConstants.LATLNG_ERROR
+                || photoPath == null) {
             Toast.makeText(getContext(), R.string.post_please_enter_all_fields, Toast.LENGTH_SHORT).show();
+            onReceiveResponseListener.onReceiveResponse();
         } else {
             double price;
             if (priceS.equals("")) {
@@ -423,42 +378,63 @@ public class AddEditPublicationFragment extends Fragment implements View.OnClick
                 }
             }
 
-            // TODO: 08/11/2016 repair starting time and ending time. also currently some fields are hard coded for testing
-            publication = new Publication(localPublicationID, -1, title, details, location, (short) 2, latlng.latitude, latlng.longitude,
-                    String.valueOf(startingDate), String.valueOf(endingDate),
-                    contactInfo, true, CommonMethods.getDeviceUUID(getContext()), CommonMethods.getFileNameFromPath(mCurrentPhotoPath), CommonMethods.getMyUserID(getContext()), 0, user.getDisplayName(), price, "");
-            // TODO: 27/11/2016 currently just adding publications, no logic for edit yet
-            Intent i = new Intent(getContext(), FoodonetService.class);
-            i.putExtra(ReceiverConstants.ACTION_TYPE, ReceiverConstants.ACTION_ADD_PUBLICATION);
-            i.putExtra(ReceiverConstants.JSON_TO_SEND, publication.getPublicationJson().toString());
-            getContext().startService(i);
-            getActivity().finish();
+            // TODO: 08/11/2016 currently some fields are hard coded for testing
+
+            publication = new Publication(localPublicationID, -1, title, details, location, (short) 2, place.getLat(), place.getLng(),
+                    String.valueOf(startingDate), String.valueOf(endingDate), contactInfo, true, CommonMethods.getDeviceUUID(getContext()),
+                    photoPath,
+                    CommonMethods.getMyUserID(getContext()),
+                    groups.get(spinnerShareWith.getSelectedItemPosition()).getGroupID() , CommonMethods.getMyUserName(getContext()), price, "");
+            if(isAddNewPublication){
+                ServerMethods.addPublication(getContext(),publication);
+            } else{
+                ServerMethods.editPublication(getContext(),publication);
+            }
         }
     }
 
-    /*
-     * Begins to upload the file specified by the file path.
-     */
-    private void beginS3Upload(String filePath) {
-        /** upload the file to the S3 server */
-        if (filePath == null) {
-            Toast.makeText(getContext(), "Could not find the filepath of the selected file",
-                    Toast.LENGTH_LONG).show();
-            return;
+
+    private class FoodonetReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // receiver for reports got from the service */
+            int action = intent.getIntExtra(ReceiverConstants.ACTION_TYPE, -1);
+            switch (action) {
+                case ReceiverConstants.ACTION_FAB_CLICK:
+                    // button for uploading the publication to the server */
+                    if (intent.getBooleanExtra(ReceiverConstants.SERVICE_ERROR, false)) {
+                        // TODO: 18/12/2016 add logic if fails
+                        Toast.makeText(context, "fab failed", Toast.LENGTH_SHORT).show();
+                    } else {
+                        int fabType = intent.getIntExtra(ReceiverConstants.FAB_TYPE, -1);
+                        if (fabType == ReceiverConstants.FAB_TYPE_SAVE_NEW_PUBLICATION) {
+                            uploadPublicationToServer(true);
+                        }else if(fabType == ReceiverConstants.FAB_TYPE_EDIT_PUBLICATION){
+                            uploadPublicationToServer(false);
+                        }
+                    }
+                    break;
+
+                case ReceiverConstants.ACTION_ADD_PUBLICATION:
+                    onReceiveResponseListener.onReceiveResponse();
+                    if(intent.getBooleanExtra(ReceiverConstants.SERVICE_ERROR,false)){
+                        // TODO: 27/11/2016 add logic if fails
+                        Toast.makeText(context, "service failed", Toast.LENGTH_SHORT).show();
+                    } else{
+                        onReplaceFragListener.onReplaceFrags(PublicationActivity.BACK_IN_STACK_TAG,-1);
+                    }
+                    break;
+
+                case ReceiverConstants.ACTION_EDIT_PUBLICATION:
+                    onReceiveResponseListener.onReceiveResponse();
+                    if(intent.getBooleanExtra(ReceiverConstants.SERVICE_ERROR,false)){
+                        // TODO: 27/11/2016 add logic if fails
+                        Toast.makeText(context, "service failed", Toast.LENGTH_SHORT).show();
+                    } else{
+                        onReplaceFragListener.onReplaceFrags(PublicationActivity.BACK_IN_STACK_TAG,publication.getId());
+                    }
+                    break;
+            }
         }
-        String[] split = filePath.split(":");
-        File file = new File(split[1]);
-        transferUtility.upload(getResources().getString(R.string.amazon_bucket), file.getName(), file);
-        // TODO: 09/11/2016 add logic to completion or failure of upload image
-        /*
-         * Note that usually we set the transfer listener after initializing the
-         * transfer. However it isn't required in this sample app. The flow is
-         * click upload button -> start an activity for image selection
-         * startActivityForResult -> onActivityResult -> beginS3Upload -> onResume
-         * -> set listeners to in progress transfers.
-         */
-        // observer.setTransferListener(new UploadListener());
     }
-
-
 }

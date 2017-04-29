@@ -3,7 +3,6 @@ package com.roa.foodonetv3.model;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Log;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -11,28 +10,31 @@ public class GroupMember implements Parcelable{
     private static final String TAG = "GroupMember";
 
     public static final String KEY = "members";
-    // TODO: 07/12/2016 Group_id with a capital G?!
-    public static final String GROUP_ID = "Group_id";
+
+    public static final String UNIQUE_ID = "id";
+    public static final String GROUP_ID = "Group_id";   //in ios capital G
     public static final String USER_ID = "user_id";
     public static final String PHONE_NUMBER = "phone_number";
     public static final String NAME = "name";
     public static final String IS_ADMIN = "is_admin";
 
-    private int groupID, userID;
+    private long groupID, userID, uniqueID;
     private String name, phoneNumber;
     private boolean isAdmin;
 
-    public GroupMember(int groupID, int userID, String phoneNumber, String name, boolean isAdmin) {
+    public GroupMember(long uniqueID, long groupID, long userID, String phoneNumber, String name, boolean isAdmin) {
         this.groupID = groupID;
         this.userID = userID;
         this.phoneNumber = phoneNumber;
         this.name = name;
         this.isAdmin = isAdmin;
+        this.uniqueID = uniqueID;
     }
 
     protected GroupMember(Parcel in) {
-        groupID = in.readInt();
-        userID = in.readInt();
+        groupID = in.readLong();
+        userID = in.readLong();
+        uniqueID = in.readLong();
         name = in.readString();
         phoneNumber = in.readString();
         isAdmin = in.readByte() != 0;
@@ -50,6 +52,7 @@ public class GroupMember implements Parcelable{
         }
     };
 
+    /** creates a json object to be sent to the server */
     public JSONObject getAddMemberJson(){
         JSONObject member = new JSONObject();
         try {
@@ -64,19 +67,27 @@ public class GroupMember implements Parcelable{
         return member;
     }
 
-    public int getGroupID() {
+    public long getUniqueID() {
+        return uniqueID;
+    }
+
+    public void setUniqueID(long uniqueID) {
+        this.uniqueID = uniqueID;
+    }
+
+    public long getGroupID() {
         return groupID;
     }
 
-    public void setGroupID(int groupID) {
+    public void setGroupID(long groupID) {
         this.groupID = groupID;
     }
 
-    public int getUserID() {
+    public long getUserID() {
         return userID;
     }
 
-    public void setUserID(int userID) {
+    public void setUserID(long userID) {
         this.userID = userID;
     }
 
@@ -111,8 +122,9 @@ public class GroupMember implements Parcelable{
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeInt(groupID);
-        dest.writeInt(userID);
+        dest.writeLong(groupID);
+        dest.writeLong(userID);
+        dest.writeLong(uniqueID);
         dest.writeString(name);
         dest.writeString(phoneNumber);
         dest.writeByte((byte) (isAdmin ? 1 : 0));

@@ -1,5 +1,6 @@
 package com.roa.foodonetv3.activities;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -20,104 +21,68 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
+import android.widget.Button;
 import android.widget.TextView;
-
 import com.bumptech.glide.Glide;
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.gcm.GoogleCloudMessaging;
+import com.google.android.gms.iid.InstanceID;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.roa.foodonetv3.R;
+import com.roa.foodonetv3.commonMethods.CommonConstants;
 import com.roa.foodonetv3.commonMethods.CommonMethods;
+import com.roa.foodonetv3.commonMethods.OnReplaceFragListener;
 import com.roa.foodonetv3.fragments.ActiveFragment;
 import com.roa.foodonetv3.fragments.ClosestFragment;
 import com.roa.foodonetv3.fragments.RecentFragment;
-import com.roa.foodonetv3.model.User;
-
-import java.util.UUID;
-
+import com.roa.foodonetv3.model.Publication;
+import com.roa.foodonetv3.serverMethods.ServerMethods;
+import org.json.JSONException;
+import org.json.JSONObject;
 import de.hdodenhof.circleimageview.CircleImageView;
 
-public class MainDrawerActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,TabLayout.OnTabSelectedListener, GoogleApiClient.OnConnectionFailedListener {
-    private static final String TAG = "MainDrawerActivity";
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,TabLayout.OnTabSelectedListener,
+        GoogleApiClient.OnConnectionFailedListener, OnReplaceFragListener {
+    private static final String TAG = "MainActivity";
+
 
     private ViewPager viewPager;
-    private ViewHolderAdapter adapter;
-    private TabLayout tabs;
-    private GoogleApiClient mGoogleApiClient;
-    private SharedPreferences preferenceManager;
+    private CircleImageView circleImageView;
+    private TextView headerTxt;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        /** toolbar set up */
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        toolbar.setTitle(R.string.foodonet);
         setSupportActionBar(toolbar);
 
-        /** get the string into a static field or a resource string*/
-        /** check if the app is initialized*/
-        preferenceManager = PreferenceManager.getDefaultSharedPreferences(this);
-        if(!preferenceManager.getBoolean("initialized",false)){
-            init();
-        }
-
-
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
+        /** set the google api ? */
+        GoogleApiClient mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .enableAutoManage(this /* FragmentActivity */, this /* OnConnectionFailedListener */)
                 .addApi(Auth.GOOGLE_SIGN_IN_API)
                 .build();
-//        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-//        View hView =  navigationView.inflateHeaderView(R.layout.nav_header_main);
-//        circleImageView imgvw = (CircleImageView)hView.findViewById(R.id.headerCircleImage);
 
-        FirebaseUser mFirebaseUser = FirebaseAuth.getInstance().getCurrentUser();
 
-        //set the header imageView
+//        // TODO: 01/01/2017 remove the notification token generator to initializes place
+//        /** generate notification token to register the device to get notification*/
+//        String token = preferenceManager.getString(getString(R.string.key_prefs_notification_token),null);
+//        if (token == null) {
+//            generateNotificationToken();
+//        }
+
+        /** set the drawer */
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         View hView =  navigationView.getHeaderView(0);
-        CircleImageView circleImageView = (CircleImageView) hView.findViewById(R.id.headerCircleImage);
-        TextView headerTxt = (TextView) hView.findViewById(R.id.headerNavTxt);
-        circleImageView.setImageResource(R.drawable.foodonet_image);
-        if (mFirebaseUser == null) {
-            // TODO: 24/11/2016 add logic?
-        } else {
-            String mUsername = mFirebaseUser.getDisplayName();
-            if (mFirebaseUser.getPhotoUrl() != null) {
-                String mPhotoUrl = mFirebaseUser.getPhotoUrl().toString();
-                Glide.with(this).load(mPhotoUrl).into(circleImageView);
-                headerTxt.setText(mUsername);
-            }
-        }
-
-        tabs = (TabLayout) findViewById(R.id.tabs);
-
-        viewPager = (ViewPager) findViewById(R.id.viewPager);
-        adapter = new ViewHolderAdapter(getSupportFragmentManager());
-        viewPager.setAdapter(adapter);
-        viewPager.setCurrentItem(0);
-        tabs.setOnTabSelectedListener(this);
-        tabs.setupWithViewPager(viewPager);
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-//                        .setAction("Action", null).show();
-                Intent i;
-                if(FirebaseAuth.getInstance().getCurrentUser()==null){
-                    /** no user logged in yet, open the sign in activity */
-                    i = new Intent(MainDrawerActivity.this,SignInActivity.class);
-                } else{
-                    /** a user is logged in, continue to open the activity and fragment of the add publication */
-                    i = new Intent(MainDrawerActivity.this,PublicationActivity.class);
-                    i.putExtra(PublicationActivity.ACTION_OPEN_PUBLICATION, PublicationActivity.OPEN_ADD_PUBLICATION);
-                }
-                startActivity(i);
-            }
-        });
+        circleImageView = (CircleImageView) hView.findViewById(R.id.headerCircleImage);
+        headerTxt = (TextView) hView.findViewById(R.id.headerNavTxt);
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -125,17 +90,56 @@ public class MainDrawerActivity extends AppCompatActivity implements NavigationV
         drawer.setDrawerListener(toggle);
         toggle.syncState();
 
-//        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        /** set the view pager */
+        TabLayout tabs = (TabLayout) findViewById(R.id.tabs);
+
+        viewPager = (ViewPager) findViewById(R.id.viewPager);
+        ViewHolderAdapter adapter = new ViewHolderAdapter(getSupportFragmentManager());
+        viewPager.setAdapter(adapter);
+        viewPager.setCurrentItem(0);
+        tabs.setOnTabSelectedListener(this);
+        tabs.setupWithViewPager(viewPager);
+
+
+        /** set the floating action button, since it only serves one fragment, no need to animate or change the view */
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                /** pressed on create new publication */
+                Intent i;
+                if(FirebaseAuth.getInstance().getCurrentUser()==null){
+                    /** no user logged in yet, open the sign in activity */
+                    i = new Intent(MainActivity.this,SignInActivity.class);
+                } else{
+                    /** a user is logged in, continue to open the activity and fragment of the add publication */
+                    i = new Intent(MainActivity.this,PublicationActivity.class);
+                    i.putExtra(PublicationActivity.ACTION_OPEN_PUBLICATION, PublicationActivity.ADD_PUBLICATION_TAG);
+                }
+                startActivity(i);
+            }
+        });
+
+        // trying to update the location returns a 404, disabling for now
+        // TODO: 24/04/2017 temp test
+        // CommonMethods.updateUserLocationToServer(this);
     }
 
-    private void init(){
-        /** get the string into a static field or a resource string*/
-        SharedPreferences.Editor edit = preferenceManager.edit();
-        edit.putBoolean("initialized",true);
-        String deviceUUID = UUID.randomUUID().toString();
-        edit.putString(User.ACTIVE_DEVICE_DEV_UUID, deviceUUID).apply();
-        Log.v("Got new device UUID",deviceUUID);
+    @Override
+    protected void onResume() {
+        super.onResume();
+        /** set drawer header and image */
+        // TODO: 19/02/2017 currently loading the image from the web
+        FirebaseUser mFirebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (mFirebaseUser != null && mFirebaseUser.getPhotoUrl() != null) {
+            Glide.with(this).load(mFirebaseUser.getPhotoUrl()).into(circleImageView);
+            headerTxt.setText(CommonMethods.getMyUserName(this));
+        } else {
+            Glide.with(this).load(android.R.drawable.sym_def_app_icon).into(circleImageView);
+            headerTxt.setText(getResources().getString(R.string.not_signed_in));
+        }
     }
 
     @Override
@@ -148,33 +152,12 @@ public class MainDrawerActivity extends AppCompatActivity implements NavigationV
         }
     }
 
-//    @Override
-//    public boolean onCreateOptionsMenu(Menu menu) {
-//        // Inflate the menu; this adds items to the action bar if it is present.
-//        getMenuInflater().inflate(R.menu.main, menu);
-////        MenuItem searchItem = menu.findItem(R.id.search);
-////        SearchView searchView = (SearchView) searchItem.getActionView();
-////        searchView.setOnQueryTextListener();
-//        return true;
-//    }
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        switch (id){
-//            case R.id.action_settings:
-//                FirebaseAuth.getInstance().signOut();
-//                Auth.GoogleSignInApi.signOut(mGoogleApiClient);
-//                /** remove user phone number and foodonet user ID from sharedPreferences */
-//                SharedPreferences.Editor editor = preferenceManager.edit();
-//                editor.remove(User.PHONE_NUMBER);
-//                editor.remove(User.IDENTITY_PROVIDER_USER_ID);
-//                editor.apply();
-//                Snackbar.make(viewPager, R.string.signed_out_successfully,Snackbar.LENGTH_SHORT).show();
-//                return true;
+        switch (item.getItemId()){
             case R.id.map:
                 CommonMethods.navigationItemSelectedAction(this,R.id.nav_map_view);
                 return true;
@@ -184,11 +167,10 @@ public class MainDrawerActivity extends AppCompatActivity implements NavigationV
         }
     }
 
+    /** handle the navigation actions in the common methods class */
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
-
-        /** handle the navigation actions in the common methods class */
         CommonMethods.navigationItemSelectedAction(this,item.getItemId());
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -210,8 +192,16 @@ public class MainDrawerActivity extends AppCompatActivity implements NavigationV
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
     }
 
+    @Override
+    public void onReplaceFrags(String openFragType, long id) {
+        Intent i = new Intent(this, PublicationActivity.class);
+        i.putExtra(PublicationActivity.ACTION_OPEN_PUBLICATION, openFragType);
+        i.putExtra(Publication.PUBLICATION_KEY,id);
+        this.startActivity(i);
+    }
+
     //view pager adapter...
-    public static class ViewHolderAdapter extends FragmentPagerAdapter {
+    public class ViewHolderAdapter extends FragmentPagerAdapter {
 
         public ViewHolderAdapter(FragmentManager fm) {
             super(fm);
@@ -223,9 +213,9 @@ public class MainDrawerActivity extends AppCompatActivity implements NavigationV
             switch (position){
                 case 0:
                     return new ActiveFragment();
+//                case 1:
+//                    return new RecentFragment();
                 case 1:
-                    return new RecentFragment();
-                case 2:
                     return new ClosestFragment();
             }
             return null;
@@ -234,11 +224,11 @@ public class MainDrawerActivity extends AppCompatActivity implements NavigationV
         public CharSequence getPageTitle(int position) {
             switch (position){
                 case 0:
-                    return "Active";
+                    return getString(R.string.view_pager_tab_active);
+//                case 1:
+//                    return getString(R.string.view_pager_tab_recent);
                 case 1:
-                    return "Recent";
-                case 2:
-                    return "Closest";
+                    return getString(R.string.view_pager_tab_closest);
             }
 
             return null;
@@ -246,11 +236,7 @@ public class MainDrawerActivity extends AppCompatActivity implements NavigationV
 
         @Override
         public int getCount() {
-            return 3;
+            return 2;
         }
     }
-
-
 }
-
-

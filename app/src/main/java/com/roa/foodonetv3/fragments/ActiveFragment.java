@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.MenuItemCompat;
@@ -20,15 +19,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
-
 import com.roa.foodonetv3.R;
-import com.roa.foodonetv3.activities.MainDrawerActivity;
+import com.roa.foodonetv3.activities.MainActivity;
 import com.roa.foodonetv3.adapters.PublicationsRecyclerAdapter;
+import com.roa.foodonetv3.commonMethods.CommonConstants;
 import com.roa.foodonetv3.commonMethods.ReceiverConstants;
-import com.roa.foodonetv3.model.Publication;
-import com.roa.foodonetv3.services.FoodonetService;
-
-import java.util.ArrayList;
+import com.roa.foodonetv3.db.FoodonetDBProvider;
 
 public class ActiveFragment extends Fragment {
     private static final String TAG = "ActiveFragment";
@@ -57,12 +53,10 @@ public class ActiveFragment extends Fragment {
         /** set the recycler view and adapter for all publications */
         RecyclerView activePubRecycler = (RecyclerView) v.findViewById(R.id.activePubRecycler);
         activePubRecycler.setLayoutManager(new LinearLayoutManager(getContext()));
-        adapter = new PublicationsRecyclerAdapter(getContext());
+        adapter = new PublicationsRecyclerAdapter(getContext(), CommonConstants.PUBLICATION_SORT_TYPE_RECENT);
         activePubRecycler.setAdapter(adapter);
         return v;
     }
-
-
 
     @Override
     public void onResume() {
@@ -70,14 +64,8 @@ public class ActiveFragment extends Fragment {
         /** set the broadcast receiver for getting all publications from the server */
         IntentFilter filter =  new IntentFilter(ReceiverConstants.BROADCAST_FOODONET);
         LocalBroadcastManager.getInstance(getContext()).registerReceiver(receiver,filter);
-        /** temp request publications update from the server on fragment resume */
-        Intent intent = new Intent(getContext(), FoodonetService.class);
-        intent.putExtra(ReceiverConstants.ACTION_TYPE, ReceiverConstants.ACTION_GET_PUBLICATIONS_EXCEPT_USER);
-        getContext().startService(intent);
-        /** show that the list is being updated */
-        if(getView()!= null){
-            Snackbar.make(getView(), R.string.updating,Snackbar.LENGTH_LONG).show();
-        }
+
+        adapter.updatePublications(FoodonetDBProvider.PublicationsDB.TYPE_GET_NON_USER_PUBLICATIONS);
     }
 
     @Override
@@ -86,19 +74,14 @@ public class ActiveFragment extends Fragment {
         LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(receiver);
     }
 
-    @Override
-    public void onStop() {
-        super.onStop();
-//        searchView.set
-    }
-
+    /** set the menu, get it from the activity and add the specific items for this fragment */
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
         menu.clear();
         inflater.inflate(R.menu.main, menu);
         MenuItem item = menu.findItem(R.id.search);
-        SearchView searchView = new SearchView(((MainDrawerActivity) getContext()).getSupportActionBar().getThemedContext());
+        SearchView searchView = new SearchView(((MainActivity) getContext()).getSupportActionBar().getThemedContext());
         MenuItemCompat.setShowAsAction(item, MenuItemCompat.SHOW_AS_ACTION_COLLAPSE_ACTION_VIEW | MenuItemCompat.SHOW_AS_ACTION_IF_ROOM);
         MenuItemCompat.setActionView(item, searchView);
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
@@ -115,18 +98,40 @@ public class ActiveFragment extends Fragment {
         });
     }
 
-    public class FoodonetReceiver extends BroadcastReceiver{
+    private class FoodonetReceiver extends BroadcastReceiver{
         @Override
         public void onReceive(Context context, Intent intent) {
-            /** receiver for publications got from the service, temporary, as we'll want to move it to the activity probably */
-            if(intent.getIntExtra(ReceiverConstants.ACTION_TYPE,-1)== ReceiverConstants.ACTION_GET_PUBLICATIONS_EXCEPT_USER){
-                if(intent.getBooleanExtra(ReceiverConstants.SERVICE_ERROR,false)){
-                    // TODO: 27/11/2016 add logic if fails
-                    Toast.makeText(context, "service failed", Toast.LENGTH_SHORT).show();
-                } else{
-                    ArrayList<Publication> publications = intent.getParcelableArrayListExtra(Publication.PUBLICATION_KEY);
-                    adapter.updatePublications(publications);
-                }
+            // TODO: 20/12/2016 should be moved to the activity
+            switch (intent.getIntExtra(ReceiverConstants.ACTION_TYPE,-1)){
+                case ReceiverConstants.ACTION_GET_ALL_PUBLICATIONS_REGISTERED_USERS:
+                    if(intent.getBooleanExtra(ReceiverConstants.SERVICE_ERROR,false)){
+                        // TODO: 20/12/2016 add logic if fails
+                        Toast.makeText(context, "service failed", Toast.LENGTH_SHORT).show();
+                    } else{
+                        /** if getDataService finished, update the adapter as we received new groups, publications and registered users */
+                        adapter.updatePublications(FoodonetDBProvider.PublicationsDB.TYPE_GET_NON_USER_PUBLICATIONS);
+                    }
+                    break;
+                case ReceiverConstants.ACTION_GET_PUBLICATION:
+                    if(intent.getBooleanExtra(ReceiverConstants.SERVICE_ERROR,false)){
+                        // TODO: 01/04/2017 add logic if fails
+                        Toast.makeText(context, "service failed", Toast.LENGTH_SHORT).show();
+                    } else{
+                        if(intent.getBooleanExtra(ReceiverConstants.UPDATE_DATA,true)){
+                            adapter.updatePublications(FoodonetDBProvider.PublicationsDB.TYPE_GET_NON_USER_PUBLICATIONS);
+                        }
+                    }
+                    break;
+                case ReceiverConstants.ACTION_DELETE_PUBLICATION:
+                    if(intent.getBooleanExtra(ReceiverConstants.SERVICE_ERROR,false)){
+                        // TODO: 01/04/2017 add logic if fails
+                        Toast.makeText(context, "service failed", Toast.LENGTH_SHORT).show();
+                    } else{
+                        if(intent.getBooleanExtra(ReceiverConstants.UPDATE_DATA,true)){
+                            adapter.updatePublications(FoodonetDBProvider.PublicationsDB.TYPE_GET_NON_USER_PUBLICATIONS);
+                        }
+                    }
+                    break;
             }
         }
     }
