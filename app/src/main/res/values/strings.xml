@@ -1,23 +1,20 @@
 <resources>
-    <string name="app_name">FoodonetV3</string>
+    <string name="app_name" translatable="false">Foodonet</string>
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
     <string name="action_settings">Settings</string>
 
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="sign_in">sign in</string>
     <string name="sign_out">Sign out</string>
     <string name="add_publication">New Share</string>
-    <string name="publication">Publication</string>
     <string name="ago">ago</string>
 
     <string name="post_hint_what_would_you_like_to_share">What would you like to share?</string>
     <string name="post_hint_pickup_address">Pickup address</string>
     <string name="post_hint_share_with">Share with:</string>
-    <string name="post_hint_additional_details">Additional details</string>
+    <string name="post_hint_additional_details">Additional details(optional)</string>
     <string name="post_please_enter_all_fields">Please enter all fields</string>
     <string name="post_hint_choose_date_to_end">Choose date to end</string>
     <string name="post_hint_price">Price</string>
@@ -45,12 +42,10 @@
     <string name="drawer_contact_us">Contact Us</string>
     <string name="drawer_about">About</string>
 
-    <string name="facebook_app_id">1059200874178777</string>
-    <string name="fb_login_protocol_scheme">fb1059200874178777</string>
-
     <string name="report_has_more_to_offer">has more to offer</string>
     <string name="report_took_all">took all</string>
     <string name="report_found_nothing_there">found nothing there</string>
+    <string name="dialog_please_choose_report">Please choose report</string>
 
     <string name="signed_out_successfully">Signed out successfully</string>
     <string name="toast_needs_location_permission">needs location permission</string>
@@ -59,7 +54,7 @@
     <string name="report_added">Report added</string>
     <string name="search_title">Search</string>
     <string name="rotate_the_phone">Rotate the phone</string>
-    <string name="send">send</string>
+    <string name="send">Send</string>
     <string name="create">Create</string>
     <string name="cancel">Cancel</string>
 
@@ -69,21 +64,16 @@
     <string name="add_image">Add image</string>
     <string name="camera">Camera</string>
     <string name="gallery">Gallery</string>
-    <string name="prefs_sign_out">prefs_sign_out</string>
+
     <string name="feedback_share_your_thoughts_or_anything_else">Share your thoughts or anything else</string>
-    <string name="feedback_feedback">Feedback</string>
-    <string name="title_activity_groups">GroupsActivity</string>
-    <string name="admin">admin</string>
+    <string name="admin">Admin</string>
     <string name="group_name">Group name</string>
     <string name="group_members">Group members</string>
     <string name="dialog_new_group">New Group</string>
     <string name="please_wait">Please wait</string>
-    <string name="failed_to_pick_contact">Failed to pick contact</string>
-    <string name="foodonet_group_members">/group_members</string>
     <string name="active_shares">Active Shares</string>
     <string name="new_share">New Share</string>
     <string name="edit">Edit</string>
-    <string name="take_offline">Take Offline</string>
     <string name="delete">Delete</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
@@ -95,11 +85,8 @@
     <string name="you_dont_have_any_groups_yet">You don\'t have any groups yet</string>
     <string name="hi_what_would_you_like_to_share">Hi,\nWhat would you like\nto share?</string>
 
-    <string name="title_activity_fullscreen_image">FullscreenActivityImage</string>
-    <string name="dummy_button">Dummy Button</string>
-    <string name="dummy_content">DUMMY\nCONTENT</string>
-    <string name="new_location">New location</string>
-    <string name="view_pager_tab_active">Active</string>
+    <string name="pick_new_location">Pick new location</string>
+    <string name="view_pager_tab_latest">Latest</string>
     <string name="view_pager_tab_recent">Recent</string>
     <string name="view_pager_tab_closest">Closest</string>
     <string name="not_signed_in">Not signed in</string>
@@ -131,8 +118,11 @@
     <string name="prefs_phone_number">Phone Number</string>
     <string name="prefs_get_notifications">Get Notifications</string>
     <string name="prefs_notification_radius">Notification Radius</string>
+    <string name="prefs_10km">10km</string>
+    <string name="prefs_20km">20km</string>
+    <string name="prefs_30km">30km</string>
+    <string name="prefs_50km">50km</string>
     <string name="prefs_all">All</string>
-    <string name="success">Success</string>
     <string name="invalid_phone_number">invalid phone number</string>
     <string name="toast_user_already_in_group">User already in group</string>
     <string name="dialog_are_you_sure">Are you sure?</string>
@@ -145,5 +135,36 @@
     <string name="new_messages">new messages</string>
     <string name="new_message">new message</string>
     <string name="clear_notifications">Clear notifications</string>
+    <string name="locations">Locations</string>
+    <string name="ended">Ended</string>
+    <string name="remaining">remaining</string>
+    <string name="currency_nis">₪</string>
+    <string name="republish">Republish</string>
+    <string name="stop_event">Stop event</string>
+    <string name="ready_to_get_started">Ready to get started?</string>
 
+    <string name="log_failed_to_pick_contact" translatable="false">Failed to pick contact</string>
+    <string name="user_name_too_long">User name too long</string>
+    <string name="cannot_publish_closed_group_event">Cannot publish closed group event</string>
+    <string name="twitter_app_isnt_found">Twitter app isn\'t found</string>
+    <string name="foodonet">Foodonet</string>
+    <string name="location_disabled">Location disabled</string>
+    <string name="google_play_services_is_not_available" translatable="false">Google Play Services is not available.</string>
+    <string name="toast_something_went_wrong_please_try_again">Something went wrong, please try again</string>
+    <string name="enter_your_name">Enter your name</string>
+    <string name="toast_please_enter_your_name">Please enter your name</string>
+    <string name="toast_please_enter_a_group_name">Please enter a group name</string>
+    <string name="image_desc_my_location">My location</string>
+    <string name="image_desc_publication_image">Publication image</string>
+    <string name="image_desc_add_image">Add image</string>
+    <string name="image_desc_star">Star</string>
+    <string name="button_desc_report">Report</string>
+    <string name="button_desc_sms_publisher">SMS publisher</string>
+    <string name="button_desc_phone_publisher">Phone publisher</string>
+    <string name="button_desc_navigate">Navigate</string>
+    <string name="button_desc_share_on_facebook">Share on Facebook</string>
+    <string name="button_desc_share_on_twitter">Share on Twitter</string>
+    <string name="button_desc_sms_registered_users">SMS registered users</string>
+    <string name="button_desc_phone_registered_users">Phone registered users</string>
+    <string name="button_desc_remove_user">Remove user</string>
 </resources>

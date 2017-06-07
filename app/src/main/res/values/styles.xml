@@ -6,6 +6,7 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
+        <!--<item name="buttonStyle">@style/foodonetButton</item>-->
     </style>
 
     <style name="AppTheme.NoActionBar">
@@ -17,9 +18,22 @@
 
     <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 
+    <style name="foodonetButton" parent="android:Theme">
+        <item name="android:background">@drawable/foodonet_button</item>
+        <item name="android:textColor">@color/fooWhite</item>
+        <item name="android:textAppearance">?android:attr/textAppearanceLarge</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textSize">@dimen/text_size_22</item>
+    </style>
+
     <style name="FooBlackXL">
         <item name="android:textSize">@dimen/text_size_36</item>
         <item name="android:textColor">@color/fooBlack</item>
+    </style>
+
+    <style name="FooWhiteXL">
+        <item name="android:textSize">@dimen/text_size_36</item>
+        <item name="android:textColor">@color/fooWhite</item>
     </style>
 
     <style name="FooXL">
@@ -47,6 +61,12 @@
     <style name="FooMedium">
         <item name="android:textSize">@dimen/text_size_20</item>
     </style>
+
+    <style name="FooIndentMedium">
+        <item name="android:textSize">@dimen/text_size_20</item>
+        <item name="android:textStyle">italic</item>
+    </style>
+
 
     <style name="FooBlackMedium">
         <item name="android:textSize">@dimen/text_size_20</item>
@@ -85,6 +105,11 @@
         <item name="android:textSize">@dimen/text_size_16</item>
     </style>
 
+    <style name="FooYellowSmall">
+        <item name="android:textSize">@dimen/text_size_16</item>
+        <item name="android:textColor">@color/fooYellow</item>
+    </style>
+
     <style name="FooBlueSmall">
         <item name="android:textSize">@dimen/text_size_16</item>
         <item name="android:textColor">@color/fooLightBlue</item>
@@ -102,6 +127,11 @@
     <style name="FooBlueXS">
         <item name="android:textSize">@dimen/text_size_12</item>
         <item name="android:textColor">@color/fooLightBlue</item>
+    </style>
+
+    <style name="FooDrawerUserName">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">@color/fooWhite</item>
     </style>
 
     <style name="FullscreenTheme" parent="AppTheme">

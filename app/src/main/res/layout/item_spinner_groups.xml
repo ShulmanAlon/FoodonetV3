@@ -4,12 +4,12 @@
     android:layout_height="wrap_content">
 
     <TextView
-        android:text="TextView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/textGroupName"
         style="@style/FooMedium"
         android:gravity="end"
+        android:textAlignment="viewEnd"
         android:layout_margin="@dimen/margin_4"
 
         />
